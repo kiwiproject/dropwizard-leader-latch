@@ -1,4 +1,4 @@
-package org.kiwiproject.curator.health;
+package org.kiwiproject.curator.leader.health;
 
 import static java.util.Collections.emptyList;
 import static org.kiwiproject.test.assertj.dropwizard.metrics.HealthCheckResultAssertions.assertThat;

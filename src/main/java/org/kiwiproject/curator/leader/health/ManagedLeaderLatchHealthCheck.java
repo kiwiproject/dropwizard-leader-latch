@@ -1,4 +1,4 @@
-package org.kiwiproject.curator.health;
+package org.kiwiproject.curator.leader.health;
 
 import static java.util.stream.Collectors.toList;
 import static org.kiwiproject.collect.KiwiLists.isNullOrEmpty;
