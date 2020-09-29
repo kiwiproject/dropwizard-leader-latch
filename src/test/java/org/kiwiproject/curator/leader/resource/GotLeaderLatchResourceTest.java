@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 class GotLeaderLatchResourceTest {
 
     private static final ResourceExtension RESOURCE = ResourceExtension.builder()
+            .bootstrapLogging(false)
             .addResource(new GotLeaderLatchResource())
             .build();
 

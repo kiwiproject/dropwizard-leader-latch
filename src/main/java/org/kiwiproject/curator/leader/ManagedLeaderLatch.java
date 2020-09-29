@@ -3,6 +3,7 @@ package org.kiwiproject.curator.leader;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static java.util.Objects.requireNonNull;
+import static org.kiwiproject.base.KiwiPreconditions.checkArgumentNotNull;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotBlank;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotNull;
 import static org.kiwiproject.base.KiwiStrings.f;
@@ -57,6 +58,23 @@ public class ManagedLeaderLatch implements Managed {
     private final AtomicBoolean started;
 
     /**
+     * Construct a latch with a standard ID and latch path.
+     *
+     * @param client            the {@link CuratorFramework} client that this latch should use
+     * @param serviceDescriptor service metadata
+     * @param listeners         zero or more {@link LeaderLatchListener} instances to attach to the leader latch
+     * @throws IllegalArgumentException if any arguments are null or blank
+     */
+    public ManagedLeaderLatch(CuratorFramework client,
+                              ServiceDescriptor serviceDescriptor,
+                              LeaderLatchListener... listeners) {
+        this(client,
+                leaderLatchId(serviceDescriptor),
+                serviceDescriptor.getName(),
+                listeners);
+    }
+
+    /**
      * Construct a latch with a specific ID and standard latch path.
      * <p>
      * The {@code serviceName} should be the generic name of a service, e.g. "payment-service" or "order-service",
@@ -85,17 +103,33 @@ public class ManagedLeaderLatch implements Managed {
     /**
      * Utility method to generate a standard latch id for a service.
      *
+     * @param serviceDescriptor the service information to use
+     * @return a latch ID
+     */
+    public static String leaderLatchId(ServiceDescriptor serviceDescriptor) {
+        checkArgumentNotNull(serviceDescriptor);
+
+        return leaderLatchId(
+                serviceDescriptor.getName(),
+                serviceDescriptor.getVersion(),
+                serviceDescriptor.getHostname(),
+                serviceDescriptor.getPort());
+    }
+
+    /**
+     * Utility method to generate a standard latch id for a service.
+     *
      * @param serviceName    the name of the service
      * @param serviceVersion the version of the service
-     * @param hostName       the host name where the service instance is running
+     * @param hostname       the host name where the service instance is running
      * @param port           the port on which the service instance is running
      * @return a latch ID
      */
     public static String leaderLatchId(String serviceName,
                                        String serviceVersion,
-                                       String hostName,
+                                       String hostname,
                                        int port) {
-        return f("{}/{}/{}:{}", serviceName, serviceVersion, hostName, port);
+        return f("{}/{}/{}:{}", serviceName, serviceVersion, hostname, port);
     }
 
     /**

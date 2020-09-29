@@ -34,6 +34,7 @@ class LeaderResourceTest {
     private static final ManagedLeaderLatch LEADER_LATCH = mock(ManagedLeaderLatch.class);
 
     private static final ResourceExtension RESOURCE = ResourceExtension.builder()
+            .bootstrapLogging(false)
             .addProvider(JaxrsExceptionMapper.class)
             .addProvider(IllegalArgumentExceptionMapper.class)
             .addResource(new LeaderResource(LEADER_LATCH))
