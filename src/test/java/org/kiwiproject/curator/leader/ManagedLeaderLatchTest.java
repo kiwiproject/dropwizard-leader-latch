@@ -83,11 +83,18 @@ class ManagedLeaderLatchTest {
     })
     void shouldCreateLeaderLatchId(String serviceName,
                                    String serviceVersion,
-                                   String hostName,
+                                   String hostname,
                                    int port,
                                    String expectedId) {
-        assertThat(ManagedLeaderLatch.leaderLatchId(serviceName, serviceVersion, hostName, port))
-                .isEqualTo(expectedId);
+
+        var serviceDescriptor = ServiceDescriptor.builder()
+                .name(serviceName)
+                .version(serviceVersion)
+                .hostname(hostname)
+                .port(port)
+                .build();
+
+        assertThat(ManagedLeaderLatch.leaderLatchId(serviceDescriptor)).isEqualTo(expectedId);
     }
 
     @ParameterizedTest
@@ -101,10 +108,28 @@ class ManagedLeaderLatchTest {
     }
 
     @Test
-    void shouldConstructNewLatchCorrectly(SoftAssertions softly) {
-        softly.assertThat(leaderLatch1.getId()).isEqualTo("id-12345");
-        softly.assertThat(leaderLatch1.getLatchPath()).isEqualTo("/kiwi/leader-latch/test-service/leader-latch");
-        softly.assertThat(leaderLatch1.getLatchState()).isEqualTo(LeaderLatch.State.LATENT);
+    void shouldConstructNewLatch(SoftAssertions softly) {
+        var latch = new ManagedLeaderLatch(client, "id-12345", "test-service", leaderListener1);
+
+        softly.assertThat(latch.getId()).isEqualTo("id-12345");
+        softly.assertThat(latch.getLatchPath()).isEqualTo("/kiwi/leader-latch/test-service/leader-latch");
+        softly.assertThat(latch.getLatchState()).isEqualTo(LeaderLatch.State.LATENT);
+    }
+
+    @Test
+    void shouldConstructNewLeaderLatch_UsingServiceDescriptor(SoftAssertions softly) {
+        var service = ServiceDescriptor.builder()
+                .name("test-service")
+                .version("42.0.24")
+                .hostname("host-12345")
+                .port(8901)
+                .build();
+
+        var latch = new ManagedLeaderLatch(client, service, leaderListener1);
+
+        softly.assertThat(latch.getId()).isEqualTo("test-service/42.0.24/host-12345:8901");
+        softly.assertThat(latch.getLatchPath()).isEqualTo("/kiwi/leader-latch/test-service/leader-latch");
+        softly.assertThat(latch.getLatchState()).isEqualTo(LeaderLatch.State.LATENT);
     }
 
     @Test
