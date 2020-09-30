@@ -23,6 +23,8 @@ public class GotLeaderLatchResource {
     /**
      * Returns a 204 (No Content) response if available. Otherwise, a 404 is returned (though obviously not
      * by this resource).
+     *
+     * @return the response
      */
     @GET
     public Response gotLeaderLatch() {

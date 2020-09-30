@@ -134,6 +134,9 @@ public class ManagedLeaderLatch implements Managed {
 
     /**
      * Utility method to generate a standard latch path for a service.
+     *
+     * @param serviceName the name of the service
+     * @return the latch path for the given service
      */
     public static String leaderLatchPath(String serviceName) {
         return Paths.get(ROOT_ZNODE_PATH, serviceName, "leader-latch").toString();
@@ -320,6 +323,7 @@ public class ManagedLeaderLatch implements Managed {
      * has completed and take some other action, etc. if you want to.
      *
      * @param action the action to perform if this latch is the leader
+     * @return an Optional containing a CompletableFuture if this latch is the leader, otherwise an empty Optional
      */
     public Optional<CompletableFuture<Void>> whenLeaderAsync(Runnable action) {
         if (hasLeadership()) {
@@ -334,6 +338,8 @@ public class ManagedLeaderLatch implements Managed {
      * currently the leader, returning the result of {@code resultSupplier}.
      *
      * @param resultSupplier the result-returning action to perform if this latch is the leader
+     * @param <T>            the result type
+     * @return an Optional containing the result if this latch is the leader, otherwise an empty Optional
      */
     public <T> Optional<T> whenLeader(Supplier<T> resultSupplier) {
         if (hasLeadership()) {
@@ -349,6 +355,8 @@ public class ManagedLeaderLatch implements Managed {
      * {@code resultSupplier}.
      *
      * @param resultSupplier the result-returning action to perform if this latch is the leader
+     * @param <T>            the result type
+     * @return an Optional containing a CompletableFuture if this latch is the leader, otherwise an empty Optional
      */
     public <T> Optional<CompletableFuture<T>> whenLeaderAsync(Supplier<T> resultSupplier) {
         if (hasLeadership()) {
@@ -363,6 +371,9 @@ public class ManagedLeaderLatch implements Managed {
      * {@link CompletableFuture}'s default executor.
      *
      * @param resultSupplier the result-returning action to perform if this latch is the leader
+     * @param executor       the custom {@link Executor} to use
+     * @param <T>            the result type
+     * @return an Optional containing a CompletableFuture if this latch is the leader, otherwise an empty Optional
      */
     public <T> Optional<CompletableFuture<T>> whenLeaderAsync(Supplier<T> resultSupplier, Executor executor) {
         if (hasLeadership()) {
