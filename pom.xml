@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.kiwiproject</groupId>
     <artifactId>dropwizard-leader-latch</artifactId>
-    <version>0.9.0-SNAPSHOT</version>
+    <version>0.9.0</version>
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -47,7 +46,7 @@
         <connection>scm:git:https://github.com/kiwiproject/dropwizard-leader-latch.git</connection>
         <developerConnection>scm:git:git@github.com:kiwiproject/dropwizard-leader-latch.git</developerConnection>
         <url>https://github.com/kiwiproject/dropwizard-leader-latch</url>
-        <tag>HEAD</tag>
+        <tag>v0.9.0</tag>
     </scm>
 
     <distributionManagement>
@@ -63,7 +62,7 @@
 
     <properties>
         <!-- Collect arguments for use by release plugin -->
-        <arguments/>
+        <arguments />
 
         <!-- Versions for required dependencies -->
         <classmate.version>1.5.1</classmate.version>
@@ -460,7 +459,7 @@
                         <id>enforce</id>
                         <configuration>
                             <rules>
-                                <dependencyConvergence/>
+                                <dependencyConvergence />
                                 <requireMavenVersion>
                                     <version>3.3.9</version>
                                 </requireMavenVersion>
