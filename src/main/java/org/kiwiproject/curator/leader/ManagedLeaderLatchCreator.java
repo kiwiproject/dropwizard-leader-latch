@@ -162,6 +162,7 @@ public class ManagedLeaderLatchCreator {
      * <p>
      * Use only when constructing a new {@link ManagedLeaderLatchCreator}.
      *
+     * @param listener the listener to add
      * @return this instance, for method chaining
      */
     public ManagedLeaderLatchCreator addLeaderLatchListener(LeaderLatchListener listener) {
