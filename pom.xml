@@ -40,7 +40,7 @@
         <jakarta.xml.bind-api>2.3.3</jakarta.xml.bind-api>
         <javassist.version>3.27.0-GA</javassist.version>
         <joda-time.version>2.10.6</joda-time.version>
-        <kiwi.version>0.10.0</kiwi.version>
+        <kiwi.version>0.12.0</kiwi.version>
         <kiwi.metrics-healthchecks-severity.version>0.9.0</kiwi.metrics-healthchecks-severity.version>
         <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
         <zookeeper.version>3.4.14</zookeeper.version>
