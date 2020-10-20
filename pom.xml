@@ -32,7 +32,7 @@
         <!-- Versions for required dependencies -->
         <classmate.version>1.5.1</classmate.version>
         <curator.version>2.13.0</curator.version>
-        <dropwizard-config-providers.version>0.2.0</dropwizard-config-providers.version>
+        <dropwizard-config-providers.version>0.4.0</dropwizard-config-providers.version>
         <dropwizard.version>2.0.13</dropwizard.version>
         <jackson.version>2.10.5</jackson.version>
         <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
