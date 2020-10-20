@@ -236,16 +236,6 @@
             <artifactId>kiwi-test</artifactId>
             <version>${kiwi.test.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.kiwiproject</groupId>
-                    <artifactId>kiwi</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
