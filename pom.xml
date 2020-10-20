@@ -70,16 +70,6 @@
             <groupId>org.kiwiproject</groupId>
             <artifactId>dropwizard-config-providers</artifactId>
             <version>${dropwizard-config-providers.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.kiwiproject</groupId>
-                    <artifactId>kiwi</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.dropwizard.metrics</groupId>
-                    <artifactId>metrics-healthchecks</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
