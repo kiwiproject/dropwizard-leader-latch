@@ -78,10 +78,6 @@
             <version>${kiwi.metrics-healthchecks-severity.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>org.kiwiproject</groupId>
-                    <artifactId>kiwi</artifactId>
-                </exclusion>
-                <exclusion>
                     <groupId>io.dropwizard.metrics</groupId>
                     <artifactId>metrics-core</artifactId>
                 </exclusion>
