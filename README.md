@@ -1,6 +1,6 @@
 ### Dropwizard Leader Latch
 
-[![Build Status](https://travis-ci.com/kiwiproject/dropwizard-leader-latch.svg?branch=master)](https://travis-ci.com/kiwiproject/dropwizard-leader-latch)
+[![Build](https://github.com/kiwiproject/dropwizard-leader-latch/workflows/build/badge.svg)](https://github.com/kiwiproject/dropwizard-leader-latch/actions?query=workflow%3Abuild)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=kiwiproject_dropwizard-leader-latch&metric=alert_status)](https://sonarcloud.io/dashboard?id=kiwiproject_dropwizard-leader-latch)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=kiwiproject_dropwizard-leader-latch&metric=coverage)](https://sonarcloud.io/dashboard?id=kiwiproject_dropwizard-leader-latch)
 [![javadoc](https://javadoc.io/badge2/org.kiwiproject/dropwizard-leader-latch/javadoc.svg)](https://javadoc.io/doc/org.kiwiproject/dropwizard-leader-latch)

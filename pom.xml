@@ -48,6 +48,10 @@
         <!-- Versions for test dependencies -->
         <kiwi.test.version>0.9.0</kiwi.test.version>
 
+        <!-- Sonar properties -->
+        <sonar.projectKey>kiwiproject_dropwizard-leader-latch</sonar.projectKey>
+        <sonar.organization>kiwiproject</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     </properties>
 
     <dependencies>
