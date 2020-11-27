@@ -31,8 +31,8 @@
         <!-- Versions for required dependencies -->
         <classmate.version>1.5.1</classmate.version>
         <curator.version>2.13.0</curator.version>
-        <dropwizard.version>2.0.15</dropwizard.version>
-        <dropwizard-config-providers.version>0.7.0</dropwizard-config-providers.version>
+        <dropwizard.version>2.0.16</dropwizard.version>
+        <dropwizard-config-providers.version>0.8.0</dropwizard-config-providers.version>
         <hibernate-validator.version>6.1.6.Final</hibernate-validator.version>
         <jackson.version>2.10.5</jackson.version>
         <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
@@ -40,13 +40,13 @@
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <javassist.version>3.27.0-GA</javassist.version>
         <joda-time.version>2.10.6</joda-time.version>
-        <kiwi.version>0.16.0</kiwi.version>
-        <kiwi.metrics-healthchecks-severity.version>0.13.0</kiwi.metrics-healthchecks-severity.version>
-        <metrics-jetty9.version>4.1.14</metrics-jetty9.version>
+        <kiwi.version>0.17.0</kiwi.version>
+        <kiwi.metrics-healthchecks-severity.version>0.14.0</kiwi.metrics-healthchecks-severity.version>
+        <metrics-jetty9.version>4.1.16</metrics-jetty9.version>
         <zookeeper.version>3.4.14</zookeeper.version>
 
         <!-- Versions for test dependencies -->
-        <kiwi.test.version>0.11.0</kiwi.test.version>
+        <kiwi.test.version>0.12.0</kiwi.test.version>
 
         <!-- Sonar properties -->
         <sonar.projectKey>kiwiproject_dropwizard-leader-latch</sonar.projectKey>
