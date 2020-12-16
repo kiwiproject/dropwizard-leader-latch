@@ -31,7 +31,7 @@
         <!-- Versions for required dependencies -->
         <classmate.version>1.5.1</classmate.version>
         <curator.version>2.13.0</curator.version>
-        <dropwizard.version>2.0.16</dropwizard.version>
+        <dropwizard.version>2.0.17</dropwizard.version>
         <dropwizard-config-providers.version>0.8.0</dropwizard-config-providers.version>
         <hibernate-validator.version>6.1.6.Final</hibernate-validator.version>
         <jackson.version>2.10.5</jackson.version>
