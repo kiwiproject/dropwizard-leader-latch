@@ -7,7 +7,6 @@
     </appender>
 
     <logger name="org.kiwiproject" level="TRACE"/>
-    <logger name="org.kiwiproject.config.provider" level="WARN"/>
 
     <root level="WARN">
         <appender-ref ref="STDOUT"/>
