@@ -4,7 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-import static org.awaitility.Durations.TWO_SECONDS;
+import static org.awaitility.Durations.FIVE_SECONDS;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
 import static org.mockito.ArgumentMatchers.any;
@@ -88,8 +88,8 @@ class ManagedLeaderLatchCreatorTest {
             // above code that attempts the deletion, which causes Curator to attempt background deletes.
             // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
             if (pathExists(rootPath)) {
-                LOG.warn("Path {} still exists; wait up to two seconds for it to be deleted", rootPath);
-                await().atMost(TWO_SECONDS).until(() -> !pathExists(rootPath));
+                LOG.warn("Path {} still exists; wait up to five seconds for it to be deleted", rootPath);
+                await().atMost(FIVE_SECONDS).until(() -> !pathExists(rootPath));
             }
         }
     }
