@@ -81,11 +81,10 @@ class ManagedLeaderLatchCreatorTest {
 
         if (pathExists(rootPath)) {
             LOG.debug("Path {} exists, attempting to delete it", rootPath);
-            client.delete().guaranteed().deletingChildrenIfNeeded().forPath(rootPath);
+            client.delete().deletingChildrenIfNeeded().forPath(rootPath);
 
             // In GitHub we have intermittent test failures caused by NodeExistsException thrown in setUp.
-            // The following attempts to wait and see if it gets deleted. Also, added guaranteed() in the
-            // above code that attempts the deletion, which causes Curator to attempt background deletes.
+            // The following attempts to wait and see if it gets deleted.
             // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
             if (pathExists(rootPath)) {
                 LOG.warn("Path {} still exists; wait up to five seconds for it to be deleted", rootPath);
