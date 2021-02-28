@@ -4,6 +4,7 @@ import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
+import static org.awaitility.Durations.TWO_SECONDS;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @DisplayName("ManagedLeaderLatchCreator")
 @ExtendWith(SoftAssertionsExtension.class)
+@Slf4j
 class ManagedLeaderLatchCreatorTest {
 
     @RegisterExtension
@@ -76,10 +78,26 @@ class ManagedLeaderLatchCreatorTest {
     @AfterEach
     void tearDown() throws Exception {
         var rootPath = "/kiwi/leader-latch";
-        var stat = client.checkExists().forPath(rootPath);
-        if (nonNull(stat)) {
-            client.delete().deletingChildrenIfNeeded().forPath(rootPath);
+
+        if (pathExists(rootPath)) {
+            LOG.debug("Path {} exists, attempting to delete it", rootPath);
+            client.delete().guaranteed().deletingChildrenIfNeeded().forPath(rootPath);
+
+            // In GitHub we have intermittent test failures caused by NodeExistsException thrown in setUp.
+            // The following attempts to wait and see if it gets deleted. Also, added guaranteed() in the
+            // above code that attempts the deletion, which causes Curator to attempt background deletes.
+            // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
+            if (pathExists(rootPath)) {
+                LOG.warn("Path {} still exists; wait up to two seconds for it to be deleted", rootPath);
+                await().atMost(TWO_SECONDS).until(() -> !pathExists(rootPath));
+            }
         }
+    }
+
+    private boolean pathExists(String rootPath) throws Exception {
+        var stat = client.checkExists().forPath(rootPath);
+
+        return nonNull(stat);
     }
 
     @Test
