@@ -1,34 +1,59 @@
 package org.kiwiproject.curator.leader.util;
 
 import static java.util.Objects.nonNull;
-import static org.awaitility.Awaitility.await;
-import static org.awaitility.Durations.FIVE_SECONDS;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
+import org.kiwiproject.retry.SimpleRetryer;
+import org.slf4j.event.Level;
+
+import java.util.concurrent.TimeUnit;
 
 @UtilityClass
 @Slf4j
 public class CuratorTestHelpers {
 
-    public static void deleteRecursively(CuratorFramework client, String rootPath) throws Exception {
-        if (pathExists(client, rootPath)) {
-            LOG.debug("Path {} exists, attempting to delete it", rootPath);
-            client.delete().deletingChildrenIfNeeded().forPath(rootPath);
-
-            // In GitHub we have seen various intermittent test failures caused by NodeExistsException.
-            // The following attempts to wait and see if it gets deleted.
-            // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
-            if (pathExists(client, rootPath)) {
-                LOG.warn("Path {} still exists; wait up to five seconds for it to be deleted", rootPath);
-                await().atMost(FIVE_SECONDS).until(() -> !pathExists(client, rootPath));
-            }
+    public static void deleteRecursivelyIfExists(CuratorFramework client, String path) throws Exception {
+        if (pathExists(client, path)) {
+            deleteRecursively(client, path);
         }
     }
 
-    public static boolean pathExists(CuratorFramework client, String rootPath) throws Exception {
-        var stat = client.checkExists().forPath(rootPath);
+    public static void deleteRecursively(CuratorFramework client, String path) {
+        // In GitHub we have seen various intermittent test failures caused by NodeExistsException.
+        // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
+
+        // The following attempts to delete a path and any children. If the path still exists after
+        // attempting to delete it, try again up to a max of 5 attempts.
+
+        var retryer = SimpleRetryer.builder()
+                .commonType("delete path: " + path)
+                .retryDelayTime(1)
+                .retryDelayUnit(TimeUnit.SECONDS)
+                .maxAttempts(5)
+                .logLevelForSubsequentAttempts(Level.WARN)
+                .build();
+
+        // NOTE: returning null forces a retry unless max attempts have been reached
+        retryer.tryGetObject(() -> {
+            try {
+                deletePathAndChildren(client, path);
+
+                return pathExists(client, path) ? null : path;
+            } catch (Exception e) {
+                LOG.warn("Error deleting path recursively: {}", path, e);
+                return null;
+            }
+        });
+    }
+
+    private static void deletePathAndChildren(CuratorFramework client, String path) throws Exception {
+        client.delete().deletingChildrenIfNeeded().forPath(path);
+    }
+
+    public static boolean pathExists(CuratorFramework client, String path) throws Exception {
+        var stat = client.checkExists().forPath(path);
 
         return nonNull(stat);
     }

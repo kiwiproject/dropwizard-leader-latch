@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Durations.FIVE_SECONDS;
-import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursively;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
@@ -65,7 +65,7 @@ class ManagedLeaderLatchTest {
         leaderLatch2 = new ManagedLeaderLatch(client, "id-67890", "test-service", leaderListener2);
 
         if (exists(leaderLatch1.getLatchPath())) {
-            deleteRecursively(client, leaderLatch1.getLatchPath());
+            deleteRecursivelyIfExists(client, leaderLatch1.getLatchPath());
         }
     }
 

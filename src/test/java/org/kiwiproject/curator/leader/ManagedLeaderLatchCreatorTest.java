@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
-import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursively;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,7 +78,7 @@ class ManagedLeaderLatchCreatorTest {
     void tearDown() throws Exception {
         var rootPath = "/kiwi/leader-latch";
 
-        deleteRecursively(client, rootPath);
+        deleteRecursivelyIfExists(client, rootPath);
     }
 
     @Test
