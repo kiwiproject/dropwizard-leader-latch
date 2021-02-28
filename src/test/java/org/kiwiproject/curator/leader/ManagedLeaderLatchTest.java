@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Durations.FIVE_SECONDS;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursively;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
@@ -64,7 +65,7 @@ class ManagedLeaderLatchTest {
         leaderLatch2 = new ManagedLeaderLatch(client, "id-67890", "test-service", leaderListener2);
 
         if (exists(leaderLatch1.getLatchPath())) {
-            client.delete().deletingChildrenIfNeeded().forPath(leaderLatch1.getLatchPath());
+            deleteRecursively(client, leaderLatch1.getLatchPath());
         }
     }
 
@@ -368,8 +369,9 @@ class ManagedLeaderLatchTest {
     }
 
     @Test
-    void shouldCallActionAsynchronously_WhenWhenIsLeader() throws Exception {
+    void shouldCallActionAsynchronously_WhenIsLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        assertThat(leaderLatch1.hasLeadership()).isTrue();
 
         var called = new AtomicBoolean();
         Optional<CompletableFuture<Void>> result = leaderLatch1.whenLeaderAsync(() -> called.set(true));
@@ -381,7 +383,7 @@ class ManagedLeaderLatchTest {
     }
 
     @Test
-    void shouldNotCallActionAsynchronously_WhenWhenIsNotLeader() throws Exception {
+    void shouldNotCallActionAsynchronously_WhenIsNotLeader() throws Exception {
         startAndAwait(leaderLatch1);
         startAndAwait(leaderLatch2);
         assertThat(leaderLatch1.hasLeadership()).isTrue();

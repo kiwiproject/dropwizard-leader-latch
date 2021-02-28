@@ -1,12 +1,11 @@
 package org.kiwiproject.curator.leader;
 
-import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-import static org.awaitility.Durations.FIVE_SECONDS;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursively;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -79,24 +78,7 @@ class ManagedLeaderLatchCreatorTest {
     void tearDown() throws Exception {
         var rootPath = "/kiwi/leader-latch";
 
-        if (pathExists(rootPath)) {
-            LOG.debug("Path {} exists, attempting to delete it", rootPath);
-            client.delete().deletingChildrenIfNeeded().forPath(rootPath);
-
-            // In GitHub we have intermittent test failures caused by NodeExistsException thrown in setUp.
-            // The following attempts to wait and see if it gets deleted.
-            // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
-            if (pathExists(rootPath)) {
-                LOG.warn("Path {} still exists; wait up to five seconds for it to be deleted", rootPath);
-                await().atMost(FIVE_SECONDS).until(() -> !pathExists(rootPath));
-            }
-        }
-    }
-
-    private boolean pathExists(String rootPath) throws Exception {
-        var stat = client.checkExists().forPath(rootPath);
-
-        return nonNull(stat);
+        deleteRecursively(client, rootPath);
     }
 
     @Test
