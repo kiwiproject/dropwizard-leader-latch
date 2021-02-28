@@ -17,7 +17,7 @@ public class CuratorTestHelpers {
             LOG.debug("Path {} exists, attempting to delete it", rootPath);
             client.delete().deletingChildrenIfNeeded().forPath(rootPath);
 
-            // In GitHub we have intermittent test failures caused by NodeExistsException thrown in setUp.
+            // In GitHub we have seen various intermittent test failures caused by NodeExistsException.
             // The following attempts to wait and see if it gets deleted.
             // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
             if (pathExists(client, rootPath)) {
