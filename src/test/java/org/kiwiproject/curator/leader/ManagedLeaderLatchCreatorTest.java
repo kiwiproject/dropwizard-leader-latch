@@ -1,11 +1,11 @@
 package org.kiwiproject.curator.leader;
 
-import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @DisplayName("ManagedLeaderLatchCreator")
 @ExtendWith(SoftAssertionsExtension.class)
+@Slf4j
 class ManagedLeaderLatchCreatorTest {
 
     @RegisterExtension
@@ -76,10 +77,8 @@ class ManagedLeaderLatchCreatorTest {
     @AfterEach
     void tearDown() throws Exception {
         var rootPath = "/kiwi/leader-latch";
-        var stat = client.checkExists().forPath(rootPath);
-        if (nonNull(stat)) {
-            client.delete().deletingChildrenIfNeeded().forPath(rootPath);
-        }
+
+        deleteRecursivelyIfExists(client, rootPath);
     }
 
     @Test
