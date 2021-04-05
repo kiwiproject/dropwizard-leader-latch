@@ -46,7 +46,7 @@
         <zookeeper.version>3.4.14</zookeeper.version>
 
         <!-- Versions for test dependencies -->
-        <kiwi.test.version>0.15.0</kiwi.test.version>
+        <kiwi.test.version>0.16.0</kiwi.test.version>
 
         <!-- Sonar properties -->
         <sonar.projectKey>kiwiproject_dropwizard-leader-latch</sonar.projectKey>
