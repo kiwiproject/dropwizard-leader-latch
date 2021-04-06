@@ -40,7 +40,7 @@
         <javassist.version>3.27.0-GA</javassist.version>
         <joda-time.version>2.10.10</joda-time.version>
         <kiwi.version>0.21.0</kiwi.version>
-        <kiwi.metrics-healthchecks-severity.version>0.17.0</kiwi.metrics-healthchecks-severity.version>
+        <kiwi.metrics-healthchecks-severity.version>0.18.0</kiwi.metrics-healthchecks-severity.version>
         <metrics-jersey2.version>4.1.18</metrics-jersey2.version>
         <metrics-jetty9.version>4.1.18</metrics-jetty9.version>
         <zookeeper.version>3.4.14</zookeeper.version>
