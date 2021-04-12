@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.kiwiproject</groupId>
         <artifactId>kiwi-parent</artifactId>
-        <version>0.10.0</version>
+        <version>0.11.0</version>
     </parent>
 
     <artifactId>dropwizard-leader-latch</artifactId>
@@ -29,6 +29,7 @@
     <properties>
 
         <!-- Versions for required dependencies -->
+        <commons-text.version>1.9</commons-text.version>
         <classmate.version>1.5.1</classmate.version>
         <curator.version>2.13.0</curator.version>
         <dropwizard.version>2.0.21</dropwizard.version>
@@ -39,14 +40,14 @@
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <javassist.version>3.27.0-GA</javassist.version>
         <joda-time.version>2.10.10</joda-time.version>
-        <kiwi.version>0.21.0</kiwi.version>
-        <kiwi.metrics-healthchecks-severity.version>0.18.0</kiwi.metrics-healthchecks-severity.version>
-        <metrics-jersey2.version>4.1.18</metrics-jersey2.version>
-        <metrics-jetty9.version>4.1.18</metrics-jetty9.version>
+        <kiwi.version>0.22.0</kiwi.version>
+        <kiwi.metrics-healthchecks-severity.version>0.19.0</kiwi.metrics-healthchecks-severity.version>
+        <metrics-jersey2.version>4.1.19</metrics-jersey2.version>
+        <metrics-jetty9.version>4.1.19</metrics-jetty9.version>
         <zookeeper.version>3.4.14</zookeeper.version>
 
         <!-- Versions for test dependencies -->
-        <kiwi.test.version>0.17.0</kiwi.test.version>
+        <kiwi.test.version>0.18.0</kiwi.test.version>
 
         <!-- Sonar properties -->
         <sonar.projectKey>kiwiproject_dropwizard-leader-latch</sonar.projectKey>
@@ -63,6 +64,18 @@
         -->
 
         <!-- required dependencies -->
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>${commons-text.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <dependency>
             <groupId>com.fasterxml</groupId>
@@ -95,6 +108,10 @@
             <artifactId>dropwizard-core</artifactId>
             <version>${dropwizard.version}</version>
             <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
