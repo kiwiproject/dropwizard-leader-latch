@@ -1,15 +1,19 @@
 package org.kiwiproject.curator.leader;
 
+import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStarted;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -31,13 +35,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.kiwiproject.curator.leader.exception.ManagedLeaderLatchException;
 import org.kiwiproject.curator.leader.health.ManagedLeaderLatchHealthCheck;
 import org.kiwiproject.curator.leader.resource.GotLeaderLatchResource;
 import org.kiwiproject.curator.leader.resource.LeaderResource;
+import org.kiwiproject.curator.leader.util.CuratorTestHelpers;
 import org.kiwiproject.test.curator.CuratorTestingServerExtension;
 import org.kiwiproject.test.dropwizard.mockito.DropwizardMockitoMocks;
+import org.kiwiproject.test.junit.jupiter.WhiteBoxTest;
 import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.TimeUnit;
@@ -58,8 +66,12 @@ class ManagedLeaderLatchCreatorTest {
     private HealthCheckRegistry healthCheckRegistry;
     private ServiceDescriptor serviceDescriptor;
 
+    private ManagedLeaderLatchCreator latchCreator;
+
     @BeforeEach
-    void setUp() {
+    void setUp(TestInfo testInfo) {
+        LOG.info("Set up for test: {}", testInfo.getDisplayName());
+
         client = ZK_TEST_SERVER.getClient();
         var dropwizardMockitoContext = DropwizardMockitoMocks.mockDropwizard();
         environment = dropwizardMockitoContext.environment();
@@ -75,15 +87,31 @@ class ManagedLeaderLatchCreatorTest {
     }
 
     @AfterEach
-    void tearDown() throws Exception {
-        var rootPath = "/kiwi/leader-latch";
+    void tearDown(TestInfo testInfo) throws Exception {
+        LOG.info("Tear down after test: {}", testInfo.getDisplayName());
 
-        deleteRecursivelyIfExists(client, rootPath);
+        if (nonNull(latchCreator) && latchCreator.isLeaderLatchStarted()) {
+            closeIfStarted(latchCreator.getLeaderLatch());
+        }
+
+        var rootPath = "/kiwi/leader-latch";
+        var deleteResult = deleteRecursivelyIfExists(client, rootPath);
+
+        if (deleteResult.failed()) {
+            LOG.error("Path {} was not deleted!", rootPath);
+
+            var kiwiPath = "/kiwi";
+            var childPaths = client.getChildren().forPath(kiwiPath);
+            LOG.info("Children at {}: {}", kiwiPath, childPaths);
+        } else {
+            LOG.info("Path {} delete result: {}", rootPath, deleteResult);
+        }
     }
 
     @Test
     void shouldThrowIllegalStateExceptions_FromGetMethods_WhenNotStarted(SoftAssertions softly) {
-        var latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor);
+        latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor);
+        assertThat(latchCreator.isLeaderLatchStarted()).isFalse();
 
         softlyAssertIllegalStateExceptionThrownBy(softly, latchCreator::getLeaderLatch);
         softlyAssertIllegalStateExceptionThrownBy(softly, latchCreator::getHealthCheck);
@@ -97,9 +125,10 @@ class ManagedLeaderLatchCreatorTest {
 
     @Test
     void shouldCreateAndManageLeaderLatch(SoftAssertions softly) {
-        var latchCreator = ManagedLeaderLatchCreator
+        latchCreator = ManagedLeaderLatchCreator
                 .from(client, environment, serviceDescriptor)
                 .start();
+        assertThat(latchCreator.isLeaderLatchStarted()).isTrue();
 
         assertThat(latchCreator.getLeaderLatch()).isNotNull();
         softly.assertThat(latchCreator.getListeners()).isEmpty();
@@ -123,9 +152,22 @@ class ManagedLeaderLatchCreatorTest {
                 .isEqualTo(LeaderLatch.State.STARTED);
     }
 
+    @WhiteBoxTest
+    void shouldThrowManagedLeaderLatchException_WhenLatchFailsToStart() throws Exception {
+        var leaderLatch = mock(ManagedLeaderLatch.class);
+
+        var ex = new RuntimeException("oop");
+        doThrow(ex).when(leaderLatch).start();
+
+        assertThatThrownBy(() -> ManagedLeaderLatchCreator.startLatchOrThrow(leaderLatch))
+                .isExactlyInstanceOf(ManagedLeaderLatchException.class)
+                .hasMessage("Error starting leader latch")
+                .hasCause(ex);
+    }
+
     @Test
     void shouldIgnoreMultipleCallsToStart() {
-        var latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor);
+        latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor);
 
         var latch1 = latchCreator.start();
         var latch2 = latchCreator.start();
@@ -145,7 +187,7 @@ class ManagedLeaderLatchCreatorTest {
     @Test
     void shouldRegisterListeners_InOrder_UsingVarargs() {
         var noOpListener = new NoOpListener();
-        var latchCreator = ManagedLeaderLatchCreator
+        latchCreator = ManagedLeaderLatchCreator
                 .from(client, environment, serviceDescriptor, noOpListener)
                 .start();
 
@@ -157,7 +199,7 @@ class ManagedLeaderLatchCreatorTest {
     void shouldRegisterListeners_InOrder_UsingAddMethod() {
         var noOpListener = new NoOpListener();
         var loggingListener = new SimpleLoggingListener();
-        var latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor)
+        latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor)
                 .addLeaderLatchListener(noOpListener)
                 .addLeaderLatchListener(loggingListener)
                 .start();
@@ -171,7 +213,7 @@ class ManagedLeaderLatchCreatorTest {
     void shouldReturnImmutableCopyOfListeners() {
         var noOpListener = new NoOpListener();
         var loggingListener = new SimpleLoggingListener();
-        var latchCreator = ManagedLeaderLatchCreator
+        latchCreator = ManagedLeaderLatchCreator
                 .from(client, environment, serviceDescriptor, noOpListener, loggingListener)
                 .start();
 
@@ -206,7 +248,7 @@ class ManagedLeaderLatchCreatorTest {
 
     @Test
     void shouldRegisterHeathCheck_ByDefault() {
-        var latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor).start();
+        latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor).start();
         assertThat(latchCreator.getHealthCheck()).isNotEmpty();
 
         var healthCheck = latchCreator.getHealthCheck().orElseThrow(IllegalStateException::new);
@@ -215,7 +257,7 @@ class ManagedLeaderLatchCreatorTest {
 
     @Test
     void shouldNotRegisterHeathCheck_IfDisabled() {
-        var latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor)
+        latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor)
                 .withoutHealthCheck()
                 .start();
 
@@ -225,7 +267,7 @@ class ManagedLeaderLatchCreatorTest {
 
     @Test
     void shouldRegisterResources_ByDefault() {
-        ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor).start();
+        latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor).start();
 
         verify(jersey).register(isA(GotLeaderLatchResource.class));
         verify(jersey).register(isA(LeaderResource.class));
@@ -233,7 +275,7 @@ class ManagedLeaderLatchCreatorTest {
 
     @Test
     void shouldNotRegisterResources_IfDisabled() {
-        ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor)
+        latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor)
                 .withoutResources()
                 .start();
 
@@ -243,19 +285,24 @@ class ManagedLeaderLatchCreatorTest {
     @Test
     void shouldStartLeaderLatch_WithAllTheDefaultThings() {
         var listener = new BecameLeaderListener();
-        var leaderLatch = ManagedLeaderLatchCreator.startLeaderLatch(client, environment, serviceDescriptor, listener);
+        ManagedLeaderLatch leaderLatch = null;
+        try {
+            leaderLatch = ManagedLeaderLatchCreator.startLeaderLatch(client, environment, serviceDescriptor, listener);
 
-        verify(healthCheckRegistry).register(eq("leaderLatch"), isA(ManagedLeaderLatchHealthCheck.class));
-        verify(jersey).register(isA(GotLeaderLatchResource.class));
-        verify(jersey).register(isA(LeaderResource.class));
+            verify(healthCheckRegistry).register(eq("leaderLatch"), isA(ManagedLeaderLatchHealthCheck.class));
+            verify(jersey).register(isA(GotLeaderLatchResource.class));
+            verify(jersey).register(isA(LeaderResource.class));
 
-        assertStartedAndBecameLeader(leaderLatch, listener);
+            assertStartedAndBecameLeader(leaderLatch, listener);
+        } finally {
+            CuratorTestHelpers.closeIfStarted(leaderLatch);
+        }
     }
 
     @Test
     void shouldStart_WithAllTheDefaultThings() {
         var listener = new BecameLeaderListener();
-        var latchCreator = ManagedLeaderLatchCreator.start(client, environment, serviceDescriptor, listener);
+        latchCreator = ManagedLeaderLatchCreator.start(client, environment, serviceDescriptor, listener);
 
         assertThat(latchCreator.getHealthCheck()).isPresent();
         assertThat(latchCreator.getListeners()).hasSize(1).hasOnlyElementsOfTypes(BecameLeaderListener.class);
