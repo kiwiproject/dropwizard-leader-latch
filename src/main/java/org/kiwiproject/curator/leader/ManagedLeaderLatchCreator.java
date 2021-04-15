@@ -3,6 +3,7 @@ package org.kiwiproject.curator.leader;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Objects.nonNull;
+import static org.kiwiproject.base.KiwiPreconditions.checkArgumentNotNull;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotNull;
 
 import io.dropwizard.setup.Environment;
@@ -40,6 +41,7 @@ public class ManagedLeaderLatchCreator {
 
     // Initialized via instance start() method so cannot be final (unless we used Kotlin and lateinit)
     private ManagedLeaderLatch leaderLatch;
+    private boolean latchStarted;
     private boolean addHealthCheck;
     private ManagedLeaderLatchHealthCheck healthCheck;
     private boolean addResources;
@@ -210,6 +212,12 @@ public class ManagedLeaderLatchCreator {
     }
 
     private void startLatchOrThrow() {
+        startLatchOrThrow(leaderLatch);
+        latchStarted = true;
+    }
+
+    static void startLatchOrThrow(ManagedLeaderLatch leaderLatch) {
+        checkArgumentNotNull(leaderLatch);
         try {
             leaderLatch.start();
         } catch (Exception e) {
@@ -232,7 +240,18 @@ public class ManagedLeaderLatchCreator {
     }
 
     /**
+     * Has this instance created and started a {@link ManagedLeaderLatch}?
+     *
+     * @return true if this instance has created and started a leader latch
+     */
+    public boolean isLeaderLatchStarted() {
+        return latchStarted;
+    }
+
+    /**
      * Returns the {@link ManagedLeaderLatch} created after {@link #start()} has been called.
+     * <p>
+     * Use {@link #isLeaderLatchStarted()} to ensure the latch has been started to ensure this method will succeed.
      *
      * @return the leader latch
      * @throws IllegalStateException if called but the latch has not been started yet
@@ -266,6 +285,6 @@ public class ManagedLeaderLatchCreator {
     }
 
     private void validateStarted() {
-        checkState(nonNull(leaderLatch), "Leader latch is not started; call start() first");
+        checkState(latchStarted, "Leader latch is not started; call start() first");
     }
 }

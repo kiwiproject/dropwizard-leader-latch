@@ -1,11 +1,12 @@
 package org.kiwiproject.curator.leader;
 
-import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Durations.FIVE_SECONDS;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStarted;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
+import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.startAndAwait;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
@@ -465,26 +466,5 @@ class ManagedLeaderLatchTest {
 
     private Executor nullExecutorWhichShouldNeverBeUsed() {
         return null;
-    }
-
-    private void startAndAwait(ManagedLeaderLatch... latches) throws Exception {
-        for (ManagedLeaderLatch latch : latches) {
-            startAndAwait(latch);
-        }
-    }
-
-    private void startAndAwait(ManagedLeaderLatch latch) throws Exception {
-        latch.start();
-        await().atMost(FIVE_SECONDS).until(latch::isStarted);
-    }
-
-    private void closeIfStarted(ManagedLeaderLatch latch) {
-        if (nonNull(latch) && latch.isStarted()) {
-            LOG.debug("Closing latch {}", latch);
-            latch.stop();
-            await().atMost(FIVE_SECONDS).until(latch::isClosed);
-        } else {
-            LOG.trace("Latch {} not started; ignoring close request", latch);
-        }
     }
 }
