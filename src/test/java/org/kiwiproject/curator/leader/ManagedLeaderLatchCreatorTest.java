@@ -45,7 +45,7 @@ import org.kiwiproject.curator.leader.resource.LeaderResource;
 import org.kiwiproject.curator.leader.util.CuratorTestHelpers;
 import org.kiwiproject.test.curator.CuratorTestingServerExtension;
 import org.kiwiproject.test.dropwizard.mockito.DropwizardMockitoMocks;
-import org.kiwiproject.test.junit.jupiter.WhiteBoxTest;
+import org.kiwiproject.test.junit.jupiter.ClearBoxTest;
 import org.mockito.ArgumentCaptor;
 
 import java.util.concurrent.TimeUnit;
@@ -152,7 +152,7 @@ class ManagedLeaderLatchCreatorTest {
                 .isEqualTo(LeaderLatch.State.STARTED);
     }
 
-    @WhiteBoxTest
+    @ClearBoxTest
     void shouldThrowManagedLeaderLatchException_WhenLatchFailsToStart() throws Exception {
         var leaderLatch = mock(ManagedLeaderLatch.class);
 
