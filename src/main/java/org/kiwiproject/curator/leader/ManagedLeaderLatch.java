@@ -174,8 +174,8 @@ public class ManagedLeaderLatch implements Managed {
 
     private void ensurePathsExistAndStartLatch() throws Exception {
         LOG.trace("Checking latch path {}", latchPath);
-        Stat possiblyNullStat = checkPathExists(latchPath);
-        Stat lockPathStat = Optional.ofNullable(possiblyNullStat).orElseGet(this::createLeaderLatchNode);
+        var possiblyNullStat = checkPathExists(latchPath);
+        var lockPathStat = Optional.ofNullable(possiblyNullStat).orElseGet(this::createLeaderLatchNode);
         LOG.info("Path [{}] creation time: {}",
                 latchPath,
                 ZonedDateTime.ofInstant(Instant.ofEpochMilli(lockPathStat.getCtime()), ZoneOffset.UTC));
