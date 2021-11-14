@@ -41,14 +41,14 @@
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <javassist.version>3.27.0-GA</javassist.version>
         <joda-time.version>2.10.10</joda-time.version>
-        <kiwi.version>1.0.0</kiwi.version>
-        <kiwi.metrics-healthchecks-severity.version>1.0.0</kiwi.metrics-healthchecks-severity.version>
+        <kiwi.version>1.1.0</kiwi.version>
+        <kiwi.metrics-healthchecks-severity.version>1.0.1</kiwi.metrics-healthchecks-severity.version>
         <metrics-jersey2.version>4.1.25</metrics-jersey2.version>
         <metrics-jetty9.version>4.1.25</metrics-jetty9.version>
         <zookeeper.version>3.7.0</zookeeper.version>
 
         <!-- Versions for test dependencies -->
-        <kiwi.test.version>1.1.0</kiwi.test.version>
+        <kiwi.test.version>1.1.1</kiwi.test.version>
 
         <!-- Sonar properties -->
         <sonar.projectKey>kiwiproject_dropwizard-leader-latch</sonar.projectKey>
