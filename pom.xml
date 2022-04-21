@@ -79,6 +79,11 @@
             <artifactId>metrics-healthchecks-severity</artifactId>
             <version>${kiwi.metrics-healthchecks-severity.version}</version>
         </dependency>
+        
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
@@ -104,6 +109,12 @@
             <groupId>org.kiwiproject</groupId>
             <artifactId>kiwi-test</artifactId>
             <version>${kiwi.test.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
 
