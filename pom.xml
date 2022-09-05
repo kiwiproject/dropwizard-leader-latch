@@ -34,7 +34,7 @@
         <kiwi.metrics-healthchecks-severity.version>1.0.8</kiwi.metrics-healthchecks-severity.version>
 
         <!-- Versions for test dependencies -->
-        <kiwi.test.version>2.2.0</kiwi.test.version>
+        <kiwi.test.version>2.2.1</kiwi.test.version>
 
         <!-- Sonar properties -->
         <sonar.projectKey>kiwiproject_dropwizard-leader-latch</sonar.projectKey>
