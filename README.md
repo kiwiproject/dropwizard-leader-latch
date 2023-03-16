@@ -6,7 +6,7 @@
 [![CodeQL](https://github.com/kiwiproject/dropwizard-leader-latch/actions/workflows/codeql.yml/badge.svg)](https://github.com/kiwiproject/dropwizard-leader-latch/actions/workflows/codeql.yml)
 [![javadoc](https://javadoc.io/badge2/org.kiwiproject/dropwizard-leader-latch/javadoc.svg)](https://javadoc.io/doc/org.kiwiproject/dropwizard-leader-latch)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Maven Central](https://img.shields.io/maven-central/v/org.kiwiproject/dropwizard-leader-latch)](https://search.maven.org/search?q=g:org.kiwiproject%20a:dropwizard-leader-latch)
+[![Maven Central](https://img.shields.io/maven-central/v/org.kiwiproject/dropwizard-leader-latch)](https://central.sonatype.com/artifact/org.kiwiproject/dropwizard-leader-latch/1.0.11)
 
 This is a small library that integrates Apache Curator's Leader Latch recipe
 into a Dropwizard service.
