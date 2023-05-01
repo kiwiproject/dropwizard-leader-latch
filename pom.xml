@@ -34,7 +34,7 @@
         <kiwi.metrics-healthchecks-severity.version>1.0.11</kiwi.metrics-healthchecks-severity.version>
 
         <!-- Versions for test dependencies -->
-        <kiwi.test.version>2.3.2</kiwi.test.version>
+        <kiwi-test.version>2.3.2</kiwi-test.version>
 
         <!-- Sonar properties -->
         <sonar.projectKey>kiwiproject_dropwizard-leader-latch</sonar.projectKey>
@@ -50,6 +50,18 @@
                 <version>${kiwi-bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            
+            <dependency>
+                <groupId>org.kiwiproject</groupId>
+                <artifactId>kiwi</artifactId>
+                <version>${kiwi.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.kiwiproject</groupId>
+                <artifactId>kiwi-test</artifactId>
+                <version>${kiwi-test.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -71,7 +83,6 @@
         <dependency>
             <groupId>org.kiwiproject</groupId>
             <artifactId>kiwi</artifactId>
-            <version>${kiwi.version}</version>
         </dependency>
 
         <dependency>
@@ -108,7 +119,6 @@
         <dependency>
             <groupId>org.kiwiproject</groupId>
             <artifactId>kiwi-test</artifactId>
-            <version>${kiwi.test.version}</version>
             <scope>test</scope>
         </dependency>
         
