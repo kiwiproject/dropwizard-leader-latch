@@ -55,7 +55,7 @@ public class CuratorTestHelpers {
     }
 
     public static DeleteResult deleteRecursively(CuratorFramework client, String path) {
-        // In GitHub we have seen various intermittent test failures caused by NodeExistsException.
+        // In GitHub, we have seen various intermittent test failures caused by NodeExistsException.
         // See issue: https://github.com/kiwiproject/dropwizard-leader-latch/issues/36
         // And also: https://github.com/kiwiproject/dropwizard-leader-latch/issues/69
 

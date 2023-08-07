@@ -218,7 +218,7 @@ public class ManagedLeaderLatch implements Managed {
      * Returns whether this instance is the leader, or throws a {@link ManagedLeaderLatchException} if Curator is not
      * started yet, this latch is not started yet, or there are no latch participants yet.
      * <p>
-     * The above mentioned situations could happen, for example, because code at startup calls this method before
+     * The above-mentioned situations could happen, for example, because code at startup calls this method before
      * Curator has been started, e.g. before the Jetty server starts in a Dropwizard application, or because the latch
      * does not yet have participants even though Curator and the latch are both started. These restrictions should
      * help prevent false negatives, i.e. having a {@code false} return value but the actual reason was because of
