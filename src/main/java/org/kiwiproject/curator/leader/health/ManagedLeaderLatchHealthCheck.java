@@ -1,6 +1,5 @@
 package org.kiwiproject.curator.leader.health;
 
-import static java.util.stream.Collectors.toList;
 import static org.kiwiproject.collect.KiwiLists.isNullOrEmpty;
 import static org.kiwiproject.metrics.health.HealthCheckResults.newHealthyResultBuilder;
 import static org.kiwiproject.metrics.health.HealthCheckResults.newUnhealthyResultBuilder;
@@ -74,13 +73,13 @@ public class ManagedLeaderLatchHealthCheck extends HealthCheck {
         return participants.stream()
                 .filter(Participant::isLeader)
                 .map(Participant::getId)
-                .collect(toList());
+                .toList();
     }
 
     private static List<String> idsOf(Collection<Participant> participants) {
         return participants.stream()
                 .map(Participant::getId)
-                .collect(toList());
+                .toList();
     }
 
 }

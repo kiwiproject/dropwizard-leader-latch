@@ -6,7 +6,7 @@ import static java.util.Objects.nonNull;
 import static org.kiwiproject.base.KiwiPreconditions.checkArgumentNotNull;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotNull;
 
-import io.dropwizard.setup.Environment;
+import io.dropwizard.core.setup.Environment;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
@@ -92,7 +92,7 @@ public class ManagedLeaderLatchCreator {
      * check and JAX-RS REST resources) and you do not need references to them, use this method to create and
      * start a latch.
      * <p>
-     * Otherwise use {@link #start(CuratorFramework, Environment, ServiceDescriptor, LeaderLatchListener...)}.
+     * Otherwise, use {@link #start(CuratorFramework, Environment, ServiceDescriptor, LeaderLatchListener...)}.
      *
      * @param client            the Curator client
      * @param environment       the Dropwizard environment
