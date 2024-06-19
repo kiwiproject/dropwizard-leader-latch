@@ -216,7 +216,8 @@ public class ManagedLeaderLatch implements Managed {
 
     /**
      * Returns whether this instance is the leader, or throws a {@link ManagedLeaderLatchException} if Curator is not
-     * started yet, this latch is not started yet, or there are no latch participants yet.
+     * started yet or has been closed; this latch is not started yet or has been closed; or if there are no
+     * latch participants yet.
      * <p>
      * The above-mentioned situations could happen, for example, because code at startup calls this method before
      * Curator has been started, e.g. before the Jetty server starts in a Dropwizard application, or because the latch
@@ -229,10 +230,12 @@ public class ManagedLeaderLatch implements Managed {
      */
     public boolean hasLeadership() {
         if (client.getState() != CuratorFrameworkState.STARTED) {
-            logAndThrowLatchException("Curator must be started before calling this method. Curator state: " + client.getState());
+            logAndThrowLatchException(
+                "Curator must be started and not closed before calling this method. Curator state: " + client.getState());
         }
         if (!isStarted()) {
-            logAndThrowLatchException("LeaderLatch must be started before calling this method. Latch state: " + leaderLatch.getState());
+            logAndThrowLatchException(
+                "LeaderLatch must be started and not closed before calling this method. Latch state: " + leaderLatch.getState());
         }
         if (getParticipants().isEmpty()) {
             logAndThrowLatchException("LeaderLatch must have participants before calling this method.");
@@ -240,6 +243,30 @@ public class ManagedLeaderLatch implements Managed {
         boolean isLeader = leaderLatch.hasLeadership();
         LOG.trace("hasLeadership? {}", isLeader);
         return isLeader;
+    }
+
+    /**
+     * This method is the negation of {@link #hasLeadership}.
+     * <p>
+     * It may be useful in situations when an action requires leadership, and you
+     * want to exit a method early instead of wrapping the logic inside a conditional.
+     * For example:
+     * <pre>
+     * public void runActionWhenLeader(Runnable action) {
+     *     if (managedLatch.doesNotHaveLeadership()) {
+     *         return;
+     *     }
+     *
+     *     // execute business logic, run the action, etc.
+     * }
+     * </pre>
+     *
+     * @return true if this latch is currently NOT the leader
+     * @throws ManagedLeaderLatchException if this method is called and any of the restrictions described
+     * in {@link #hasLeadership} apply
+     */
+    public boolean doesNotHaveLeadership() {
+        return !hasLeadership();
     }
 
     private void logAndThrowLatchException(String msg) {

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Durations.FIVE_SECONDS;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStarted;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.startAndAwait;
@@ -197,7 +198,7 @@ class ManagedLeaderLatchTest {
 
         assertThatThrownBy(latch::hasLeadership)
                 .isExactlyInstanceOf(ManagedLeaderLatchException.class)
-                .hasMessage("Curator must be started before calling this method. Curator state: " +
+                .hasMessage("Curator must be started and not closed before calling this method. Curator state: " +
                         CuratorFrameworkState.LATENT.name());
     }
 
@@ -212,7 +213,7 @@ class ManagedLeaderLatchTest {
             curatorClient.start();
             assertThatThrownBy(latch::hasLeadership)
                     .isExactlyInstanceOf(ManagedLeaderLatchException.class)
-                    .hasMessage("LeaderLatch must be started before calling this method. Latch state: " +
+                    .hasMessage("LeaderLatch must be started and not closed before calling this method. Latch state: " +
                             LeaderLatch.State.LATENT.name());
         }
     }
@@ -252,6 +253,26 @@ class ManagedLeaderLatchTest {
         closeIfStarted(leaderLatch1);
 
         assertThat(leaderLatch2.hasLeadership()).isTrue();
+    }
+
+    @Test
+    void shouldReportOppositeValueFor_hasLeadership_and_doesNotHaveLeadership() throws Exception {
+        startAndAwait(leaderLatch1);
+        startAndAwait(leaderLatch2);
+
+        assertAll(
+            () -> assertThat(leaderLatch1.hasLeadership()).isTrue(),
+            () -> assertThat(leaderLatch1.doesNotHaveLeadership()).isFalse(),
+            () -> assertThat(leaderLatch2.hasLeadership()).isFalse(),
+            () -> assertThat(leaderLatch2.doesNotHaveLeadership()).isTrue()
+        );
+
+        closeIfStarted(leaderLatch1);  // once closed, we cannot call hasLeadership or doesNotHaveLeadership
+
+        assertAll(
+            () -> assertThat(leaderLatch2.hasLeadership()).isTrue(),
+            () -> assertThat(leaderLatch2.doesNotHaveLeadership()).isFalse()
+        );
     }
 
     @Test
