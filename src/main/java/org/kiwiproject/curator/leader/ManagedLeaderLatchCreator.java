@@ -66,7 +66,7 @@ public class ManagedLeaderLatchCreator {
      * <p>
      * Use this method when you want to perform additional configuration before starting the leader latch.
      * <p>
-     * You will need to call {@link #start()} on the returned instance in order to start the
+     * You will need to call {@link #start()} on the returned instance to start the
      * {@link ManagedLeaderLatch}.
      *
      * @param client            the Curator client
@@ -188,7 +188,7 @@ public class ManagedLeaderLatchCreator {
      * </ul>
      * <p>
      * Note that once this method is called, nothing about the {@link ManagedLeaderLatch} can be changed, and calls
-     * to other instance methods (e.g. addLeaderLatchListener) will have no effect. Similarly, calling this method
+     * to other instance methods (e.g., addLeaderLatchListener) will have no effect. Similarly, calling this method
      * more than once is considered unexpected behavior, and we will simply return the existing instance without
      * taking any other actions.
      *
