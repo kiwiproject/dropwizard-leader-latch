@@ -231,7 +231,7 @@ class ManagedLeaderLatchTest {
     void shouldThrowException_WhenHasLeadershipCalled_WhenLeaderLatchHasNoParticipantsYet() throws Exception {
         var retryPolicy = new RetryOneTime(500);
         var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
-        var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+        var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service") {
             @Override
             public Collection<Participant> getParticipants() {
                 return Collections.emptyList();
@@ -546,7 +546,7 @@ class ManagedLeaderLatchTest {
         void shouldReturnFalse_WhenLeaderLatchHasNoParticipantsYet() throws Exception {
             var retryPolicy = new RetryOneTime(500);
             var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
-            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service") {
                 @Override
                 public Collection<Participant> getParticipants() {
                     return Collections.emptyList();
@@ -568,7 +568,7 @@ class ManagedLeaderLatchTest {
         void shouldReturnFalse_WhenExceptionThrownGettingParticipants() throws Exception {
             var retryPolicy = new RetryOneTime(500);
             var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
-            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service") {
                 @Override
                 public Collection<Participant> getParticipants() {
                     throw new ManagedLeaderLatchException(new KeeperException.NoNodeException("/latch/path"));
@@ -633,7 +633,7 @@ class ManagedLeaderLatchTest {
         void shouldReturnNoLatchParticipants_WhenLeaderLatchHasNoParticipantsYet() throws Exception {
             var retryPolicy = new RetryOneTime(500);
             var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
-            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service") {
                 @Override
                 public Collection<Participant> getParticipants() {
                     return Collections.emptyList();
@@ -657,7 +657,7 @@ class ManagedLeaderLatchTest {
             var retryPolicy = new RetryOneTime(500);
             var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
             var exception = new ManagedLeaderLatchException(new KeeperException.NoNodeException("/latch/path"));
-            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service") {
                 @Override
                 public Collection<Participant> getParticipants() {
                     throw exception;
