@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Simple check to determine if the leader latch is started (healthy) or otherwise (not healthy).
  * <p>
- * The check also reports as unhealthy if there is no leader, or if more than one leader is reported by Curator.
+ * The check also reports as unhealthy if there is no leader, or if Curator reports more than one leader.
  */
 public class ManagedLeaderLatchHealthCheck extends HealthCheck {
 
