@@ -7,8 +7,15 @@ import static org.kiwiproject.base.KiwiPreconditions.checkArgumentNotNull;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotBlank;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotNull;
 import static org.kiwiproject.base.KiwiStrings.f;
+import static org.kiwiproject.curator.leader.LeadershipStatus.CuratorNotStarted;
+import static org.kiwiproject.curator.leader.LeadershipStatus.IsLeader;
+import static org.kiwiproject.curator.leader.LeadershipStatus.LatchNotStarted;
+import static org.kiwiproject.curator.leader.LeadershipStatus.NoLatchParticipants;
+import static org.kiwiproject.curator.leader.LeadershipStatus.NotLeader;
+import static org.kiwiproject.curator.leader.LeadershipStatus.OtherError;
 
 import com.google.common.base.MoreObjects;
+import com.google.errorprone.annotations.CheckReturnValue;
 import io.dropwizard.lifecycle.Managed;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -152,7 +159,7 @@ public class ManagedLeaderLatch implements Managed {
     }
 
     /**
-     * Starts the latch, possibly creating non-existent znodes in ZooKeeper first.
+     * Starts the latch, possibly creating non-existent <em>znodes</em> in ZooKeeper first.
      * <p>
      * The CuratorFramework must be started, or else a {@link com.google.common.base.VerifyException} will
      * be thrown.
@@ -215,19 +222,89 @@ public class ManagedLeaderLatch implements Managed {
     }
 
     /**
+     * An "escape hatch" to get the {@link LeaderLatch} managed by this object.
+     *
+     * @return the latch managed by this object
+     */
+    public LeaderLatch getManagedLatch() {
+        return leaderLatch;
+    }
+
+    /**
+     * Returns whether this instance is the leader, or false if there are <em>any</em> errors
+     * getting leadership status. This is a convenience wrapper that delegates to
+     * {@link LeaderLatch#hasLeadership()}.
+     * <p>
+     * If you want to make sure that a {@code false} return value is not due to any errors
+     * or invalid state, use either {@link #hasLeadership()} or {@link #checkLeadershipStatus()}.
+     *
+     * @return true if the leader latch is started and this latch is the leader, otherwise false
+     * @see #hasLeadership()
+     * @see #checkLeadershipStatus()
+     * @see LeaderLatch#hasLeadership()
+     */
+    @CheckReturnValue
+    public boolean hasLeadershipIgnoringErrors() {
+        return leaderLatch.hasLeadership();
+    }
+
+    /**
+     * Checks whether this instance is the leader, returning a {@link LeadershipStatus}
+     * object that callers can use to act upon.
+     * <p>
+     * This method never throws any exception. Instead, invalid states and errors
+     * are represented in the returned {@link LeadershipStatus}.
+     * <p>
+     * If you only care that the latch is definitely the leader, ignoring any errors,
+     * you can use {@link #hasLeadershipIgnoringErrors()}. Or, you can use
+     * {@link #hasLeadership()} if you want to check for errors and invalid state
+     * and handle those errors via an exception handler.
+     *
+     * @return a value representing the leadership status
+     * @see #hasLeadership()
+     * @see #hasLeadershipIgnoringErrors()
+     */
+    @CheckReturnValue
+    public LeadershipStatus checkLeadershipStatus() {
+        try {
+            if (client.getState() != CuratorFrameworkState.STARTED) {
+                return new CuratorNotStarted(client.getState());
+            }
+
+            if (!isStarted()) {
+                return new LatchNotStarted(getLatchState());
+            }
+
+            if (getParticipants().isEmpty()) {
+                return new NoLatchParticipants();
+            }
+
+            return leaderLatch.hasLeadership() ? new IsLeader() : new NotLeader();
+        } catch (Exception e) {
+            return new OtherError(e);
+        }
+    }
+    
+    /**
      * Returns whether this instance is the leader, or throws a {@link ManagedLeaderLatchException} if Curator is not
      * started yet or has been closed; this latch is not started yet or has been closed; or if there are no
      * latch participants yet.
      * <p>
      * The above-mentioned situations could happen, for example, because code at startup calls this method before
-     * Curator has been started, e.g. before the Jetty server starts in a Dropwizard application, or because the latch
+     * Curator has been started, e.g., before the Jetty server starts in a Dropwizard application, or because the latch
      * does not yet have participants even though Curator and the latch are both started. These restrictions should
-     * help prevent false negatives, i.e. having a {@code false} return value but the actual reason was because of
+     * help prevent false negatives, i.e., having a {@code false} return value but the actual reason was because of
      * some other factor.
+     * <p>
+     * If you do not care whether there are errors or invalid state you can use {@link #hasLeadershipIgnoringErrors()}.
+     * Or, if you want to know the exact leadership status, you can use {@link #checkLeadershipStatus()}.
      *
      * @return true if this latch is currently the leader
      * @throws ManagedLeaderLatchException if this method is called and any of the restrictions mentioned above apply
+     * @see #hasLeadershipIgnoringErrors()
+     * @see #checkLeadershipStatus()
      */
+    @CheckReturnValue
     public boolean hasLeadership() {
         if (client.getState() != CuratorFrameworkState.STARTED) {
             logAndThrowLatchException(
@@ -265,6 +342,7 @@ public class ManagedLeaderLatch implements Managed {
      * @throws ManagedLeaderLatchException if this method is called and any of the restrictions described
      * in {@link #hasLeadership} apply
      */
+    @CheckReturnValue
     public boolean doesNotHaveLeadership() {
         return !hasLeadership();
     }
@@ -277,7 +355,7 @@ public class ManagedLeaderLatch implements Managed {
     }
 
     /**
-     * Get the participants (i.e. Dropwizard services) in this latch.
+     * Get the participants (i.e., Dropwizard services) in this latch.
      *
      * @return unordered collection of leader latch participants
      * @throws ManagedLeaderLatchException if any error occurs getting the participants
@@ -333,7 +411,7 @@ public class ManagedLeaderLatch implements Managed {
 
     /**
      * Perform the given {@code action} <em>synchronously</em> only if this latch is currently the leader. Use this
-     * when the action does not need to return a value and it is a "fire and forget" action.
+     * when the action does not need to return a value, and it is a "fire and forget" action.
      *
      * @param action the action to perform if this latch is the leader
      */
@@ -345,7 +423,7 @@ public class ManagedLeaderLatch implements Managed {
 
     /**
      * Perform the given {@code action} <em>asynchronously</em> only if this latch is currently the leader. Use this
-     * when the action does not need to return a value and it is a "fire and forget" action. However, if the
+     * when the action does not need to return a value, and it is a "fire and forget" action. However, if the
      * returned {@link Optional} is present, you can use the {@link CompletableFuture} to determine when the action
      * has completed and take some other action, etc. if you want to.
      *

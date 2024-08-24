@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStarted;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.startAndAwait;
+import static org.kiwiproject.test.assertj.KiwiAssertJ.assertIsExactType;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
@@ -19,16 +20,24 @@ import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.framework.recipes.leader.Participant;
 import org.apache.curator.retry.RetryOneTime;
+import org.apache.zookeeper.KeeperException;
 import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.kiwiproject.curator.leader.LeadershipStatus.CuratorNotStarted;
+import org.kiwiproject.curator.leader.LeadershipStatus.IsLeader;
+import org.kiwiproject.curator.leader.LeadershipStatus.LatchNotStarted;
+import org.kiwiproject.curator.leader.LeadershipStatus.NoLatchParticipants;
+import org.kiwiproject.curator.leader.LeadershipStatus.NotLeader;
+import org.kiwiproject.curator.leader.LeadershipStatus.OtherError;
 import org.kiwiproject.curator.leader.exception.ManagedLeaderLatchException;
 import org.kiwiproject.test.curator.CuratorTestingServerExtension;
 
@@ -485,7 +494,187 @@ class ManagedLeaderLatchTest {
         assertThat(result).isEmpty();
     }
 
+    @SuppressWarnings("SameReturnValue")
     private Executor nullExecutorWhichShouldNeverBeUsed() {
         return null;
+    }
+
+    @Test
+    void shouldGetManagedLeaderLatch() {
+        var latch = leaderLatch1.getManagedLatch();
+        assertThat(latch).isNotNull();
+        assertThat(latch.getId()).isEqualTo(leaderLatch1.getId());
+    }
+
+    @Nested
+    class HasLeadershipIgnoringErrors {
+
+        @Test
+        void shouldReturnExpectedValue_WhenValidState() throws Exception {
+            startAndAwait(leaderLatch1, leaderLatch2);
+
+            assertAll(
+                    () -> assertThat(leaderLatch1.hasLeadershipIgnoringErrors()).isTrue(),
+                    () -> assertThat(leaderLatch2.hasLeadershipIgnoringErrors()).isFalse()
+            );
+        }
+
+        @Test
+        void shouldReturnFalse_WhenCuratorNotStarted() {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service");
+            LOG.trace("Created latch {}", latch);
+
+            assertThat(latch.hasLeadershipIgnoringErrors()).isFalse();
+        }
+
+        @Test
+        void shouldReturnFalse_WhenLatchNotStarted() {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service");
+            LOG.trace("Created latch {}", latch);
+
+            try (curatorClient) {
+                curatorClient.start();
+                assertThat(latch.hasLeadershipIgnoringErrors()).isFalse();
+            }
+        }
+
+        @Test
+        void shouldReturnFalse_WhenLeaderLatchHasNoParticipantsYet() throws Exception {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+                @Override
+                public Collection<Participant> getParticipants() {
+                    return Collections.emptyList();
+                }
+            };
+            LOG.trace("Created latch {} that always returns empty participants", latch);
+
+            try (curatorClient) {
+                curatorClient.start();
+                latch.start();
+
+                assertThat(latch.hasLeadershipIgnoringErrors()).isFalse();
+            } finally {
+                latch.stop();
+            }
+        }
+
+        @Test
+        void shouldReturnFalse_WhenExceptionThrownGettingParticipants() throws Exception {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+                @Override
+                public Collection<Participant> getParticipants() {
+                    throw new ManagedLeaderLatchException(new KeeperException.NoNodeException("/latch/path"));
+                }
+            };
+            LOG.trace("Created latch {} that always returns empty participants", latch);
+
+            try (curatorClient) {
+                curatorClient.start();
+                latch.start();
+
+                assertThat(latch.hasLeadershipIgnoringErrors()).isFalse();
+            } finally {
+                latch.stop();
+            }
+        }
+    }
+
+    @Nested
+    class CheckLeadershipStatus {
+
+        @Test
+        void shouldReturnExpectedIsOrNotLeader_WhenValidState() throws Exception {
+            startAndAwait(leaderLatch1, leaderLatch2);
+
+            assertAll(
+                    () -> assertThat(leaderLatch1.checkLeadershipStatus()).isExactlyInstanceOf(IsLeader.class),
+                    () -> assertThat(leaderLatch2.checkLeadershipStatus()).isExactlyInstanceOf(NotLeader.class)
+            );
+        }
+
+        @Test
+        void shouldReturnCuratorNotStarted_WhenCuratorNotStarted() {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service");
+            LOG.trace("Created latch {}", latch);
+
+            var status = latch.checkLeadershipStatus();
+
+            var notStarted = assertIsExactType(status, CuratorNotStarted.class);
+            assertThat(notStarted.curatorState()).isEqualTo(CuratorFrameworkState.LATENT);
+        }
+
+        @Test
+        void shouldReturnLatchNotStarted_WhenLatchNotStarted() {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-service");
+            LOG.trace("Created latch {}", latch);
+
+            try (curatorClient) {
+                curatorClient.start();
+                var status = latch.checkLeadershipStatus();
+
+                var latchNotStarted = assertIsExactType(status, LatchNotStarted.class);
+                assertThat(latchNotStarted.latchState()).isEqualTo(LeaderLatch.State.LATENT);
+            }
+        }
+
+        @Test
+        void shouldReturnNoLatchParticipants_WhenLeaderLatchHasNoParticipantsYet() throws Exception {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+                @Override
+                public Collection<Participant> getParticipants() {
+                    return Collections.emptyList();
+                }
+            };
+            LOG.trace("Created latch {} that always returns empty participants", latch);
+
+            try (curatorClient) {
+                curatorClient.start();
+                latch.start();
+
+                var status = latch.checkLeadershipStatus();
+                assertIsExactType(status, NoLatchParticipants.class);
+            } finally {
+                latch.stop();
+            }
+        }
+
+        @Test
+        void shouldReturnOtherError_WhenExceptionThrownGettingParticipants() throws Exception {
+            var retryPolicy = new RetryOneTime(500);
+            var curatorClient = CuratorFrameworkFactory.newClient(ZK_TEST_SERVER.getConnectString(), retryPolicy);
+            var exception = new ManagedLeaderLatchException(new KeeperException.NoNodeException("/latch/path"));
+            var latch = new ManagedLeaderLatch(curatorClient, "testLatchId", "test-vip-address") {
+                @Override
+                public Collection<Participant> getParticipants() {
+                    throw exception;
+                }
+            };
+            LOG.trace("Created latch {} that always returns empty participants", latch);
+
+            try (curatorClient) {
+                curatorClient.start();
+                latch.start();
+
+                var status = latch.checkLeadershipStatus();
+                var otherError = assertIsExactType(status, OtherError.class);
+                assertThat(otherError.error()).isSameAs(exception);
+            } finally {
+                latch.stop();
+            }
+        }
     }
 }

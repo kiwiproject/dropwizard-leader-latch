@@ -318,7 +318,7 @@ class ManagedLeaderLatchCreatorTest {
     @Slf4j
     static class BecameLeaderListener implements LeaderLatchListener {
 
-        AtomicBoolean becameLeader = new AtomicBoolean();
+        final AtomicBoolean becameLeader = new AtomicBoolean();
 
         @Override
         public void isLeader() {
@@ -334,6 +334,6 @@ class ManagedLeaderLatchCreatorTest {
 
     private void assertStartedAndBecameLeader(ManagedLeaderLatch leaderLatch, BecameLeaderListener listener) {
         assertThat(leaderLatch.isStarted()).isTrue();
-        await().atMost(5, TimeUnit.SECONDS).until(() -> listener.becameLeader.get());
+        await().atMost(5, TimeUnit.SECONDS).until(listener.becameLeader::get);
     }
 }
