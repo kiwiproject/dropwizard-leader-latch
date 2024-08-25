@@ -1,6 +1,7 @@
 package org.kiwiproject.curator.leader;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Durations.FIVE_SECONDS;
@@ -9,9 +10,13 @@ import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStar
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.startAndAwait;
 import static org.kiwiproject.test.assertj.KiwiAssertJ.assertIsExactType;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
+import com.google.common.base.VerifyException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -30,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.kiwiproject.curator.leader.LeadershipStatus.CuratorNotStarted;
 import org.kiwiproject.curator.leader.LeadershipStatus.IsLeader;
 import org.kiwiproject.curator.leader.LeadershipStatus.LatchNotStarted;
@@ -199,6 +205,33 @@ class ManagedLeaderLatchTest {
         return leaderLatch1.hasLeadership() && leaderLatch2.hasLeadership();
     }
 
+    @ParameterizedTest
+    @EnumSource(value = CuratorFrameworkState.class, names = {"STARTED"}, mode = EnumSource.Mode.EXCLUDE)
+    void shouldThrowException_WhenStartCalled_ButCuratorIsNotStarted(CuratorFrameworkState curatorState) {
+        var notStartedClient = mock(CuratorFramework.class);
+        when(notStartedClient.getState()).thenReturn(curatorState);
+
+        var latch = new ManagedLeaderLatch(notStartedClient, "id-12345", "test-service", leaderListener1);
+
+        assertThatExceptionOfType(VerifyException.class)
+                .isThrownBy(latch::start)
+                .withMessage("CuratorFramework must be started");
+    }
+
+    @Test
+    void shouldThrowException_WhenStartCalled_ButExceptionThrownCreatingNode() {
+        var spyClient = spy(client);
+        var exception = new IllegalStateException("Curator is stopped!");
+        doThrow(exception).when(spyClient).create();
+
+        var latch = new ManagedLeaderLatch(spyClient, "id-1234", "test-service");
+
+        assertThatExceptionOfType(ManagedLeaderLatchException.class)
+                .isThrownBy(latch::start)
+                .havingCause()
+                .isSameAs(exception);
+    }
+
     @Test
     void shouldThrowException_WhenHasLeadershipCalled_WhenCuratorIsNotStarted() {
         var latch = setupLatch().latch();
@@ -343,6 +376,22 @@ class ManagedLeaderLatchTest {
     }
 
     @Test
+    void shouldThrowException_WhenErrorOccursGettingParticipants() throws Exception {
+        var leaderLatch = mock(LeaderLatch.class);
+        var noNodeException = new KeeperException.NoNodeException("/latch/path");
+        when(leaderLatch.getParticipants()).thenThrow(noNodeException);
+
+        var managedLeaderLatch = new ManagedLeaderLatch(client,
+                "id-2442",
+                new ManagedLeaderLatch.LatchAndPath(leaderLatch, "/latch/path"));
+
+        assertThatExceptionOfType(ManagedLeaderLatchException.class)
+                .isThrownBy(managedLeaderLatch::getParticipants)
+                .havingCause()
+                .isSameAs(noNodeException);
+    }
+
+    @Test
     void shouldGetLeader() throws Exception {
         startAndAwait(leaderLatch1);
 
@@ -363,6 +412,31 @@ class ManagedLeaderLatchTest {
         assertThat(leaderLatch2.getLeader())
                 .describedAs("leaderLatch2 should now be leader")
                 .isEqualTo(new Participant(leaderLatch2.getId(), true));
+    }
+
+    @Test
+    void shouldThrowException_WhenAnErrorOccurs_GettingTheLeader() throws Exception {
+        var leaderLatch = mock(LeaderLatch.class);
+        var noNodeException = new KeeperException.NoNodeException("/latch/path");
+        when(leaderLatch.getLeader()).thenThrow(noNodeException);
+
+        var managedLeaderLatch = new ManagedLeaderLatch(client,
+                "id-2442",
+                new ManagedLeaderLatch.LatchAndPath(leaderLatch, "/latch/path"));
+
+        assertThatExceptionOfType(ManagedLeaderLatchException.class)
+                .isThrownBy(managedLeaderLatch::getLeader)
+                .havingCause()
+                .isSameAs(noNodeException);
+    }
+
+    @Test
+    void shouldCheck_IsClosed() throws Exception {
+        startAndAwait(leaderLatch1);
+        assertThat(leaderLatch1.isClosed()).isFalse();
+
+        leaderLatch1.stop();
+        assertThat(leaderLatch1.isClosed()).isTrue();
     }
 
     @Test

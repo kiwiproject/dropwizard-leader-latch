@@ -3,6 +3,7 @@ package org.kiwiproject.curator.leader;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 import static java.util.Objects.requireNonNull;
+import static org.kiwiproject.base.KiwiPreconditions.checkArgumentNotBlank;
 import static org.kiwiproject.base.KiwiPreconditions.checkArgumentNotNull;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotBlank;
 import static org.kiwiproject.base.KiwiPreconditions.requireNotNull;
@@ -14,6 +15,7 @@ import static org.kiwiproject.curator.leader.LeadershipStatus.NoLatchParticipant
 import static org.kiwiproject.curator.leader.LeadershipStatus.NotLeader;
 import static org.kiwiproject.curator.leader.LeadershipStatus.OtherError;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.errorprone.annotations.CheckReturnValue;
 import io.dropwizard.lifecycle.Managed;
@@ -99,12 +101,34 @@ public class ManagedLeaderLatch implements Managed {
                               String id,
                               String serviceName,
                               LeaderLatchListener... listeners) {
-        this.client = requireNotNull(client);
-        this.id = requireNotBlank(id);
-        this.latchPath = leaderLatchPath(requireNotBlank(serviceName));
-        this.leaderLatch = new LeaderLatch(client, latchPath, id, LeaderLatch.CloseMode.NOTIFY_LEADER);
+        this(client, id, newLatch(client, id, serviceName), listeners);
+    }
+
+    @VisibleForTesting
+    ManagedLeaderLatch(CuratorFramework client,
+                       String id,
+                       LatchAndPath latchAndPath,
+                       LeaderLatchListener... listeners) {
+        this.client = requireNotNull(client, "client must not be null");
+        this.id = requireNotBlank(id, "id must not be blank");
+        this.latchPath = latchAndPath.latchPath();
+        this.leaderLatch = latchAndPath.latch();
         Arrays.stream(requireNonNull(listeners)).forEach(leaderLatch::addListener);
         this.started = new AtomicBoolean();
+    }
+
+    private static LatchAndPath newLatch(CuratorFramework client, String id, String serviceName) {
+        var latchPath = leaderLatchPath(requireNotBlank(serviceName, "serviceName must not be blank"));
+        var leaderLatch = new LeaderLatch(client, latchPath, id, LeaderLatch.CloseMode.NOTIFY_LEADER);
+        return new LatchAndPath(leaderLatch, latchPath);
+    }
+
+    @VisibleForTesting
+    record LatchAndPath(LeaderLatch latch, String latchPath) {
+        LatchAndPath {
+            checkArgumentNotNull(latch, "latch must not be null");
+            checkArgumentNotBlank(latchPath, "latchPath must not be blank");
+        }
     }
 
     /**
@@ -114,7 +138,7 @@ public class ManagedLeaderLatch implements Managed {
      * @return a latch ID
      */
     public static String leaderLatchId(ServiceDescriptor serviceDescriptor) {
-        checkArgumentNotNull(serviceDescriptor);
+        checkArgumentNotNull(serviceDescriptor, "serviceDescriptor must not be null");
 
         return leaderLatchId(
                 serviceDescriptor.getName(),
