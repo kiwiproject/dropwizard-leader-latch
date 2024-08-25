@@ -2,8 +2,10 @@ package org.kiwiproject.curator.leader;
 
 import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStarted;
@@ -28,15 +30,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
-import org.assertj.core.api.SoftAssertions;
-import org.assertj.core.api.ThrowableAssert;
-import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.kiwiproject.curator.leader.exception.ManagedLeaderLatchException;
 import org.kiwiproject.curator.leader.health.ManagedLeaderLatchHealthCheck;
@@ -52,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @DisplayName("ManagedLeaderLatchCreator")
-@ExtendWith(SoftAssertionsExtension.class)
 @Slf4j
 class ManagedLeaderLatchCreatorTest {
 
@@ -109,29 +106,28 @@ class ManagedLeaderLatchCreatorTest {
     }
 
     @Test
-    void shouldThrowIllegalStateExceptions_FromGetMethods_WhenNotStarted(SoftAssertions softly) {
+    void shouldThrowIllegalStateExceptions_FromGetMethods_WhenNotStarted() {
         latchCreator = ManagedLeaderLatchCreator.from(client, environment, serviceDescriptor);
         assertThat(latchCreator.isLeaderLatchStarted()).isFalse();
 
-        softlyAssertIllegalStateExceptionThrownBy(softly, latchCreator::getLeaderLatch);
-        softlyAssertIllegalStateExceptionThrownBy(softly, latchCreator::getHealthCheck);
-        softlyAssertIllegalStateExceptionThrownBy(softly, latchCreator::getListeners);
-    }
-
-    private void softlyAssertIllegalStateExceptionThrownBy(SoftAssertions softly,
-                                                           ThrowableAssert.ThrowingCallable callable) {
-        softly.assertThatThrownBy(callable).isExactlyInstanceOf(IllegalStateException.class);
+        assertAll(
+                () -> assertThatIllegalStateException().isThrownBy(latchCreator::getLeaderLatch),
+                () -> assertThatIllegalStateException().isThrownBy(latchCreator::getHealthCheck),
+                () -> assertThatIllegalStateException().isThrownBy(latchCreator::getListeners)
+        );
     }
 
     @Test
-    void shouldCreateAndManageLeaderLatch(SoftAssertions softly) {
+    void shouldCreateAndManageLeaderLatch() {
         latchCreator = ManagedLeaderLatchCreator
                 .from(client, environment, serviceDescriptor)
                 .start();
-        assertThat(latchCreator.isLeaderLatchStarted()).isTrue();
 
-        assertThat(latchCreator.getLeaderLatch()).isNotNull();
-        softly.assertThat(latchCreator.getListeners()).isEmpty();
+        assertAll(
+                () -> assertThat(latchCreator.isLeaderLatchStarted()).isTrue(),
+                () -> assertThat(latchCreator.getLeaderLatch()).isNotNull(),
+                () -> assertThat(latchCreator.getListeners()).isEmpty()
+        );
 
         var managedCaptor = ArgumentCaptor.forClass(Managed.class);
         verify(lifecycle).manage(managedCaptor.capture());
@@ -142,14 +138,17 @@ class ManagedLeaderLatchCreatorTest {
         assertThat(managed).isExactlyInstanceOf(ManagedLeaderLatch.class);
 
         var managedLeaderLatch = (ManagedLeaderLatch) managed;
-        softly.assertThat(managedLeaderLatch.getId())
-                .isEqualTo(ManagedLeaderLatch.leaderLatchId(serviceDescriptor));
 
-        softly.assertThat(managedLeaderLatch.getLatchPath())
-                .isEqualTo(ManagedLeaderLatch.leaderLatchPath(serviceDescriptor.getName()));
+        assertAll(
+                () -> assertThat(managedLeaderLatch.getId())
+                        .isEqualTo(ManagedLeaderLatch.leaderLatchId(serviceDescriptor)),
 
-        softly.assertThat(managedLeaderLatch.getLatchState())
-                .isEqualTo(LeaderLatch.State.STARTED);
+                () -> assertThat(managedLeaderLatch.getLatchPath())
+                        .isEqualTo(ManagedLeaderLatch.leaderLatchPath(serviceDescriptor.getName())),
+
+                () -> assertThat(managedLeaderLatch.getLatchState())
+                        .isEqualTo(LeaderLatch.State.STARTED)
+        );
     }
 
     @ClearBoxTest
