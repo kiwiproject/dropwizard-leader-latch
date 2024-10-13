@@ -27,7 +27,6 @@ class ManagedLeaderLatchHealthCheckTest {
     @BeforeEach
     void setUp() {
         leaderLatch = mock(ManagedLeaderLatch.class);
-        when(leaderLatch.getId()).thenReturn("1");
         when(leaderLatch.getLatchPath()).thenReturn("/some/path");
         healthCheck = new ManagedLeaderLatchHealthCheck(leaderLatch);
     }
@@ -54,26 +53,31 @@ class ManagedLeaderLatchHealthCheckTest {
 
             @Test
             void shouldBeHealthy_WhenNotLeader() {
+                when(leaderLatch.getId()).thenReturn("1");
                 when(leaderLatch.hasLeadership()).thenReturn(false);
 
                 assertThat(healthCheck)
                         .isHealthy()
                         .hasMessage("Leader latch is started (has leadership? false)")
                         .hasDetail("leader", false)
+                        .hasDetail("leaderParticipant", "2")
+                        .hasDetail("thisParticipant", "1")
                         .hasDetail("participants", List.of("1", "2", "3"))
                         .hasDetail("severity", "OK");
-
                 verify(leaderLatch).isStarted();
             }
 
             @Test
             void shouldBeHealthy_WhenIsTheLeader() {
+                when(leaderLatch.getId()).thenReturn("2");
                 when(leaderLatch.hasLeadership()).thenReturn(true);
 
                 assertThat(healthCheck)
                         .isHealthy()
                         .hasMessage("Leader latch is started (has leadership? true)")
                         .hasDetail("leader", true)
+                        .hasDetail("leaderParticipant", "2")
+                        .hasDetail("thisParticipant", "2")
                         .hasDetail("participants", List.of("1", "2", "3"))
                         .hasDetail("severity", "OK");
 
@@ -86,12 +90,15 @@ class ManagedLeaderLatchHealthCheckTest {
 
             @Test
             void shouldBeUnhealthy() {
+                when(leaderLatch.getId()).thenReturn("1");
                 when(leaderLatch.getParticipants()).thenReturn(emptyList());
 
                 assertThat(healthCheck)
                         .isUnhealthy()
                         .hasMessage("There are NO leaders for latch path /some/path")
                         .hasDetail("leader", false)
+                        .hasDetail("leaderParticipant", null)
+                        .hasDetail("thisParticipant", "1")
                         .hasDetail("participants", List.of())
                         .hasDetail("severity", "CRITICAL");
 
@@ -109,12 +116,15 @@ class ManagedLeaderLatchHealthCheckTest {
                 var participant3 = new Participant("3", IS_LEADER);
                 var participants = List.of(participant1, participant2, participant3);
 
+                when(leaderLatch.getId()).thenReturn("1");
                 when(leaderLatch.getParticipants()).thenReturn(participants);
 
                 assertThat(healthCheck)
                         .isUnhealthy()
                         .hasMessage("There is more than one leader for latch path /some/path. Leader IDs: [2, 3] (this latch ID: 1)")
                         .hasDetail("leader", false)
+                        .hasDetail("leaderParticipant", "2")
+                        .hasDetail("thisParticipant", "1")
                         .hasDetail("participants", List.of("1", "2", "3"))
                         .hasDetail("severity", "CRITICAL");
 
@@ -128,12 +138,15 @@ class ManagedLeaderLatchHealthCheckTest {
 
         @Test
         void shouldBeUnhealthy() {
+            when(leaderLatch.getId()).thenReturn("1");
             when(leaderLatch.isStarted()).thenReturn(false);
 
             assertThat(healthCheck)
                     .isUnhealthy()
                     .hasMessageEndingWith("is not started")
                     .hasDetail("leader", false)
+                    .hasDetail("leaderParticipant", null)
+                    .hasDetail("thisParticipant", "1")
                     .hasDetail("participants", List.of())
                     .hasDetail("severity", "CRITICAL");
         }
