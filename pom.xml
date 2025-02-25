@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.kiwiproject</groupId>
         <artifactId>kiwi-parent</artifactId>
-        <version>3.0.22</version>
+        <version>3.0.23</version>
     </parent>
 
     <artifactId>dropwizard-leader-latch</artifactId>
@@ -29,9 +29,9 @@
     <properties>
 
         <!-- Versions for required dependencies -->
-        <kiwi.version>4.7.0</kiwi.version>
-        <kiwi-bom.version>2.0.21</kiwi-bom.version>
-        <kiwi.metrics-healthchecks-severity.version>2.0.9</kiwi.metrics-healthchecks-severity.version>
+        <kiwi.version>4.8.0</kiwi.version>
+        <kiwi-bom.version>2.0.22</kiwi-bom.version>
+        <kiwi.metrics-healthchecks-severity.version>2.1.0</kiwi.metrics-healthchecks-severity.version>
 
         <!-- Versions for test dependencies -->
         <kiwi-test.version>3.9.0</kiwi-test.version>
