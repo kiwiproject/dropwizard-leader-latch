@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>dropwizard-leader-latch</artifactId>
-    <version>2.3.8-SNAPSHOT</version>
+    <version>2.3.8</version>
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -23,7 +23,7 @@
         <connection>scm:git:https://github.com/kiwiproject/dropwizard-leader-latch.git</connection>
         <developerConnection>scm:git:git@github.com:kiwiproject/dropwizard-leader-latch.git</developerConnection>
         <url>https://github.com/kiwiproject/dropwizard-leader-latch</url>
-        <tag>HEAD</tag>
+        <tag>v2.3.8</tag>
     </scm>
 
     <properties>
