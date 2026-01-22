@@ -10,10 +10,12 @@ import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStar
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.startAndAwait;
 import static org.kiwiproject.test.assertj.KiwiAssertJ.assertIsExactType;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.VerifyException;
@@ -193,8 +195,11 @@ class ManagedLeaderLatchTest {
 
         var nodes = client.getChildren().forPath(leaderLatch1.getLatchPath());
         assertThat(nodes).hasSize(2);
-        assertThat(atLeastOneHasLeadership()).isTrue();
-        assertThat(bothAreLeaders()).isFalse();
+
+        await().atMost(FIVE_SECONDS).untilAsserted(() -> {
+            assertThat(atLeastOneHasLeadership()).isTrue();
+            assertThat(bothAreLeaders()).isFalse();
+        });
     }
 
     private boolean atLeastOneHasLeadership() {
@@ -275,14 +280,14 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldChangeLeadership() throws Exception {
         startAndAwait(leaderLatch1);
-        assertThat(leaderLatch1.hasLeadership()).isTrue();
+        awaitIsLeader(leaderLatch1);
 
         startAndAwait(leaderLatch2);
-        assertThat(leaderLatch2.hasLeadership()).isFalse();
+        awaitNotLeader(leaderLatch2);
 
         closeIfStarted(leaderLatch1);
 
-        assertThat(leaderLatch2.hasLeadership()).isTrue();
+        awaitIsLeader(leaderLatch2);
     }
 
     @Test
@@ -290,33 +295,44 @@ class ManagedLeaderLatchTest {
         startAndAwait(leaderLatch1);
         startAndAwait(leaderLatch2);
 
-        assertAll(
-            () -> assertThat(leaderLatch1.hasLeadership()).isTrue(),
-            () -> assertThat(leaderLatch1.doesNotHaveLeadership()).isFalse(),
-            () -> assertThat(leaderLatch2.hasLeadership()).isFalse(),
-            () -> assertThat(leaderLatch2.doesNotHaveLeadership()).isTrue()
-        );
+        awaitIsLeader(leaderLatch1);
+        awaitNotLeader(leaderLatch2);
 
         closeIfStarted(leaderLatch1);  // once closed, we cannot call hasLeadership or doesNotHaveLeadership
 
-        assertAll(
-            () -> assertThat(leaderLatch2.hasLeadership()).isTrue(),
-            () -> assertThat(leaderLatch2.doesNotHaveLeadership()).isFalse()
-        );
+        awaitIsLeader(leaderLatch2);
+    }
+
+    private static void awaitIsLeader(ManagedLeaderLatch latch) {
+        awaitLeadership(latch, true);
+    }
+
+    private static void awaitNotLeader(ManagedLeaderLatch latch) {
+        awaitLeadership(latch, false);
+    }
+
+    private static void awaitLeadership(ManagedLeaderLatch latch, boolean isLeader) {
+        await().atMost(FIVE_SECONDS).untilAsserted(() -> assertThat(latch.hasLeadership()).isEqualTo(isLeader));
     }
 
     @Test
     void shouldNotify_LeaderChangeNotifications_InOrder() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         startAndAwait(leaderLatch2);
+
         closeIfStarted(leaderLatch1);
+        awaitIsLeader(leaderLatch2);
+
         closeIfStarted(leaderLatch2);
 
+        // Listener callbacks are async; use Mockito timeout to avoid race with Curator event thread
         var inOrder = inOrder(leaderListener1, leaderListener2);
-        inOrder.verify(leaderListener1).isLeader();
-        inOrder.verify(leaderListener1).notLeader();
-        inOrder.verify(leaderListener2).isLeader();
-        inOrder.verify(leaderListener2).notLeader();
+        inOrder.verify(leaderListener1, timeout(5000)).isLeader();
+        inOrder.verify(leaderListener1, timeout(5000)).notLeader();
+        inOrder.verify(leaderListener2, timeout(5000)).isLeader();
+        inOrder.verify(leaderListener2, timeout(5000)).notLeader();
     }
 
     @Test
@@ -326,8 +342,26 @@ class ManagedLeaderLatchTest {
         var latchWithListeners = new ManagedLeaderLatch(
                 client, "id-12345", "test-service", leaderLatchListener1a, leaderLatchListener1b);
 
-        startAndAwait(latchWithListeners);
-        closeIfStarted(latchWithListeners);
+        var leader1aCalled = new AtomicBoolean();
+        doAnswer(invocation -> {
+            leader1aCalled.set(true);
+            return null;
+        }).when(leaderLatchListener1a).isLeader();
+
+        var leader1bCalled = new AtomicBoolean();
+        doAnswer(invocation -> {
+            leader1bCalled.set(true);
+            return null;
+        }).when(leaderLatchListener1b).isLeader();
+
+        try {
+            startAndAwait(latchWithListeners);
+
+            await().atMost(FIVE_SECONDS).untilTrue(leader1aCalled);
+            await().atMost(FIVE_SECONDS).untilTrue(leader1bCalled);
+        } finally {
+            closeIfStarted(latchWithListeners);
+        }
 
         var inOrder1 = inOrder(leaderLatchListener1a);
         inOrder1.verify(leaderLatchListener1a).isLeader();
@@ -355,6 +389,7 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldGetParticipants() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
 
         assertThat(leaderLatch1.getParticipants())
                 .containsExactly(new Participant(leaderLatch1.getId(), true));
@@ -394,6 +429,7 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldGetLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
 
         assertThat(leaderLatch1.getLeader()).isEqualTo(new Participant(leaderLatch1.getId(), true));
 
@@ -409,9 +445,11 @@ class ManagedLeaderLatchTest {
 
         closeIfStarted(leaderLatch1);
 
-        assertThat(leaderLatch2.getLeader())
-                .describedAs("leaderLatch2 should now be leader")
-                .isEqualTo(new Participant(leaderLatch2.getId(), true));
+        await().atMost(FIVE_SECONDS).untilAsserted(() ->
+                assertThat(leaderLatch2.getLeader())
+                        .describedAs("leaderLatch2 should now be leader")
+                        .isEqualTo(new Participant(leaderLatch2.getId(), true))
+        );
     }
 
     @Test
@@ -446,25 +484,31 @@ class ManagedLeaderLatchTest {
         var called = new AtomicBoolean();
         leaderLatch1.whenLeader(() -> called.set(true));
 
-        assertThat(called).isTrue();
+        await().atMost(FIVE_SECONDS).untilTrue(called);
     }
 
+    // Ignore Sonar's warning about the sleep call here. This test asserts that an action is NOT invoked.
+    // There is no event to await, and a short, bounded sleep is the safest way to detect unintended
+    // asynchronous execution.
     @Test
+    @SuppressWarnings("java:S2925")
     void shouldNotCallActionSynchronously_WhenIsNotLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         startAndAwait(leaderLatch2);
-        assertThat(leaderLatch1.hasLeadership()).isTrue();
 
         var called = new AtomicBoolean();
         leaderLatch2.whenLeader(() -> called.set(true));
 
+        Thread.sleep(200);
         assertThat(called).isFalse();
     }
 
     @Test
     void shouldCallActionAsynchronously_WhenIsLeader() throws Exception {
         startAndAwait(leaderLatch1);
-        assertThat(leaderLatch1.hasLeadership()).isTrue();
+        awaitIsLeader(leaderLatch1);
 
         var called = new AtomicBoolean();
         Optional<CompletableFuture<Void>> result = leaderLatch1.whenLeaderAsync(() -> called.set(true));
@@ -478,8 +522,9 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldNotCallActionAsynchronously_WhenIsNotLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         startAndAwait(leaderLatch2);
-        assertThat(leaderLatch1.hasLeadership()).isTrue();
 
         var called = new AtomicBoolean();
         Optional<CompletableFuture<Void>> result = leaderLatch2.whenLeaderAsync(() -> called.set(true));
@@ -491,6 +536,8 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldCallSupplierSynchronously_WhenIsLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         Supplier<Integer> supplier = () -> 42;
 
         Optional<Integer> result = leaderLatch1.whenLeader(supplier);
@@ -500,8 +547,9 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldNotCallSupplierSynchronously_WhenIsNotLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         startAndAwait(leaderLatch2);
-        assertThat(leaderLatch1.hasLeadership()).isTrue();
 
         Optional<Integer> result = leaderLatch2.whenLeader(() -> 42);
         assertThat(result).isEmpty();
@@ -510,6 +558,8 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldCallSupplierAsynchronously_WhenIsLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         Supplier<Integer> supplier = () -> 42;
 
         Optional<CompletableFuture<Integer>> result = leaderLatch1.whenLeaderAsync(supplier);
@@ -517,14 +567,15 @@ class ManagedLeaderLatchTest {
 
         CompletableFuture<Integer> future = result.orElseThrow();
         await().atMost(FIVE_SECONDS).until(future::isDone);
-        assertThat(future.get()).isEqualTo(42);
+        assertThat(future).isCompletedWithValue(42);
     }
 
     @Test
     void shouldNotCallSupplierAsynchronously_WhenIsNotLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         startAndAwait(leaderLatch2);
-        assertThat(leaderLatch1.hasLeadership()).isTrue();
 
         Optional<CompletableFuture<Integer>> result = leaderLatch2.whenLeaderAsync(() -> 42);
         assertThat(result).isEmpty();
@@ -533,6 +584,8 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldCallSupplierAsynchronously_WithCustomExecutor_WhenIsLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         Supplier<Integer> supplier = () -> 42;
         var executor = Executors.newSingleThreadExecutor();
 
@@ -541,14 +594,15 @@ class ManagedLeaderLatchTest {
         assertThat(result).isNotEmpty();
         CompletableFuture<Integer> future = result.orElseThrow();
         await().atMost(FIVE_SECONDS).until(future::isDone);
-        assertThat(future.get()).isEqualTo(42);
+        assertThat(future).isCompletedWithValue(42);
     }
 
     @Test
     void shouldNotCallSupplierAsynchronously_WithCustomExecutor_WhenIsNotLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
+
         startAndAwait(leaderLatch2);
-        assertThat(leaderLatch1.hasLeadership()).isTrue();
 
         var nullExecutor = nullExecutorWhichShouldNeverBeUsed();
         Optional<CompletableFuture<Integer>> result = leaderLatch2.whenLeaderAsync(() -> 42, nullExecutor);
@@ -574,6 +628,7 @@ class ManagedLeaderLatchTest {
         @Test
         void shouldReturnExpectedValue_WhenValidState() throws Exception {
             startAndAwait(leaderLatch1, leaderLatch2);
+            awaitIsLeader(leaderLatch1);
 
             assertAll(
                     () -> assertThat(leaderLatch1.hasLeadershipIgnoringErrors()).isTrue(),
@@ -585,7 +640,10 @@ class ManagedLeaderLatchTest {
         void shouldReturnFalse_WhenCuratorNotStarted() {
             var latch = setupLatch().latch();
 
-            assertThat(latch.hasLeadershipIgnoringErrors()).isFalse();
+            assertAll(
+                    () -> assertThat(latch.hasLeadershipIgnoringErrors()).isFalse(),
+                    () -> assertThat(latch.isStarted()).isFalse()
+            );
         }
 
         @Test
@@ -635,6 +693,7 @@ class ManagedLeaderLatchTest {
         @Test
         void shouldReturnExpectedIsOrNotLeader_WhenValidState() throws Exception {
             startAndAwait(leaderLatch1, leaderLatch2);
+            awaitIsLeader(leaderLatch1);
 
             assertAll(
                     () -> assertThat(leaderLatch1.checkLeadershipStatus()).isExactlyInstanceOf(IsLeader.class),
