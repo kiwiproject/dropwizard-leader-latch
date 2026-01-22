@@ -3,9 +3,10 @@ package org.kiwiproject.curator.leader;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
-import static org.awaitility.Durations.FIVE_SECONDS;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.kiwiproject.curator.leader.util.AwaitilityTestHelpers.await5SecondsUntilAsserted;
+import static org.kiwiproject.curator.leader.util.AwaitilityTestHelpers.await5SecondsUntilFutureIsDone;
+import static org.kiwiproject.curator.leader.util.AwaitilityTestHelpers.await5SecondsUntilTrue;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStarted;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.startAndAwait;
@@ -196,7 +197,7 @@ class ManagedLeaderLatchTest {
         var nodes = client.getChildren().forPath(leaderLatch1.getLatchPath());
         assertThat(nodes).hasSize(2);
 
-        await().atMost(FIVE_SECONDS).untilAsserted(() -> {
+        await5SecondsUntilAsserted(() -> {
             assertThat(atLeastOneHasLeadership()).isTrue();
             assertThat(bothAreLeaders()).isFalse();
         });
@@ -345,8 +346,8 @@ class ManagedLeaderLatchTest {
         try {
             startAndAwait(latchWithListeners);
 
-            await().atMost(FIVE_SECONDS).untilTrue(leader1aCalled);
-            await().atMost(FIVE_SECONDS).untilTrue(leader1bCalled);
+            await5SecondsUntilTrue(leader1aCalled);
+            await5SecondsUntilTrue(leader1bCalled);
         } finally {
             closeIfStarted(latchWithListeners);
         }
@@ -433,7 +434,7 @@ class ManagedLeaderLatchTest {
 
         closeIfStarted(leaderLatch1);
 
-        await().atMost(FIVE_SECONDS).untilAsserted(() ->
+        await5SecondsUntilAsserted(() ->
                 assertThat(leaderLatch2.getLeader())
                         .describedAs("leaderLatch2 should now be leader")
                         .isEqualTo(new Participant(leaderLatch2.getId(), true))
@@ -472,7 +473,7 @@ class ManagedLeaderLatchTest {
         var called = new AtomicBoolean();
         leaderLatch1.whenLeader(() -> called.set(true));
 
-        await().atMost(FIVE_SECONDS).untilTrue(called);
+        await5SecondsUntilTrue(called);
     }
 
     // Ignore Sonar's warning about the sleep call here. This test asserts that an action is NOT invoked.
@@ -503,7 +504,7 @@ class ManagedLeaderLatchTest {
 
         assertThat(result).isPresent();
         CompletableFuture<Void> future = result.orElseThrow();
-        await().atMost(FIVE_SECONDS).until(future::isDone);
+        await5SecondsUntilFutureIsDone(future);
         assertThat(called).isTrue();
     }
 
@@ -554,7 +555,7 @@ class ManagedLeaderLatchTest {
         assertThat(result).isPresent();
 
         CompletableFuture<Integer> future = result.orElseThrow();
-        await().atMost(FIVE_SECONDS).until(future::isDone);
+        await5SecondsUntilFutureIsDone(future);
         assertThat(future).isCompletedWithValue(42);
     }
 
@@ -581,7 +582,7 @@ class ManagedLeaderLatchTest {
 
         assertThat(result).isNotEmpty();
         CompletableFuture<Integer> future = result.orElseThrow();
-        await().atMost(FIVE_SECONDS).until(future::isDone);
+        await5SecondsUntilFutureIsDone(future);
         assertThat(future).isCompletedWithValue(42);
     }
 
@@ -796,6 +797,6 @@ class ManagedLeaderLatchTest {
     }
 
     private static void awaitLeadership(ManagedLeaderLatch latch, boolean isLeader) {
-        await().atMost(FIVE_SECONDS).untilAsserted(() -> assertThat(latch.hasLeadership()).isEqualTo(isLeader));
+        await5SecondsUntilAsserted(() -> assertThat(latch.hasLeadership()).isEqualTo(isLeader));
     }
 }
