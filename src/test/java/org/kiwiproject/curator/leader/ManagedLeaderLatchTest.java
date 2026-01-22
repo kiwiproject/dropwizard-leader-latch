@@ -303,18 +303,6 @@ class ManagedLeaderLatchTest {
         awaitIsLeader(leaderLatch2);
     }
 
-    private static void awaitIsLeader(ManagedLeaderLatch latch) {
-        awaitLeadership(latch, true);
-    }
-
-    private static void awaitNotLeader(ManagedLeaderLatch latch) {
-        awaitLeadership(latch, false);
-    }
-
-    private static void awaitLeadership(ManagedLeaderLatch latch, boolean isLeader) {
-        await().atMost(FIVE_SECONDS).untilAsserted(() -> assertThat(latch.hasLeadership()).isEqualTo(isLeader));
-    }
-
     @Test
     void shouldNotify_LeaderChangeNotifications_InOrder() throws Exception {
         startAndAwait(leaderLatch1);
@@ -797,5 +785,17 @@ class ManagedLeaderLatchTest {
     private record LatchTestContext(ManagedLeaderLatch latch,
                                     CuratorFramework curatorClient,
                                     @Nullable Exception exception) {
+    }
+
+    private static void awaitIsLeader(ManagedLeaderLatch latch) {
+        awaitLeadership(latch, true);
+    }
+
+    private static void awaitNotLeader(ManagedLeaderLatch latch) {
+        awaitLeadership(latch, false);
+    }
+
+    private static void awaitLeadership(ManagedLeaderLatch latch, boolean isLeader) {
+        await().atMost(FIVE_SECONDS).untilAsserted(() -> assertThat(latch.hasLeadership()).isEqualTo(isLeader));
     }
 }
