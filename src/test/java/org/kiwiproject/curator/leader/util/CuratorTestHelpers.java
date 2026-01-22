@@ -1,8 +1,7 @@
 package org.kiwiproject.curator.leader.util;
 
 import static java.util.Objects.nonNull;
-import static org.awaitility.Awaitility.await;
-import static org.awaitility.Durations.FIVE_SECONDS;
+import static org.kiwiproject.curator.leader.util.AwaitilityTestHelpers.await5SecondsUntilTrue;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -25,14 +24,14 @@ public class CuratorTestHelpers {
 
     public static void startAndAwait(ManagedLeaderLatch latch) throws Exception {
         latch.start();
-        await().atMost(FIVE_SECONDS).until(latch::isStarted);
+        await5SecondsUntilTrue(latch::isStarted);
     }
 
     public static void closeIfStarted(ManagedLeaderLatch latch) {
         if (nonNull(latch) && latch.isStarted()) {
             LOG.debug("Closing latch {}", latch);
             latch.stop();
-            await().atMost(FIVE_SECONDS).until(latch::isClosed);
+            await5SecondsUntilTrue(latch::isClosed);
         } else {
             LOG.trace("Latch {} not started; ignoring close request", latch);
         }

@@ -4,10 +4,10 @@ import static java.util.Objects.nonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.kiwiproject.collect.KiwiLists.first;
 import static org.kiwiproject.collect.KiwiLists.second;
+import static org.kiwiproject.curator.leader.util.AwaitilityTestHelpers.await5SecondsUntilTrue;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.closeIfStarted;
 import static org.kiwiproject.curator.leader.util.CuratorTestHelpers.deleteRecursivelyIfExists;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,7 +46,6 @@ import org.kiwiproject.test.dropwizard.mockito.DropwizardMockitoMocks;
 import org.kiwiproject.test.junit.jupiter.ClearBoxTest;
 import org.mockito.ArgumentCaptor;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @DisplayName("ManagedLeaderLatchCreator")
@@ -333,6 +332,6 @@ class ManagedLeaderLatchCreatorTest {
 
     private void assertStartedAndBecameLeader(ManagedLeaderLatch leaderLatch, BecameLeaderListener listener) {
         assertThat(leaderLatch.isStarted()).isTrue();
-        await().atMost(5, TimeUnit.SECONDS).until(listener.becameLeader::get);
+        await5SecondsUntilTrue(listener.becameLeader);
     }
 }
