@@ -31,7 +31,7 @@
         <!-- Versions for required dependencies -->
         <kiwi.version>5.3.1</kiwi.version>
         <kiwi-bom.version>3.2.0</kiwi-bom.version>
-        <kiwi.metrics-healthchecks-severity.version>3.0.2</kiwi.metrics-healthchecks-severity.version>
+        <metrics-healthchecks-severity.version>3.0.2</metrics-healthchecks-severity.version>
 
         <!-- Versions for test dependencies -->
         <kiwi-test.version>4.1.0</kiwi-test.version>
@@ -91,7 +91,7 @@
         <dependency>
             <groupId>org.kiwiproject</groupId>
             <artifactId>metrics-healthchecks-severity</artifactId>
-            <version>${kiwi.metrics-healthchecks-severity.version}</version>
+            <version>${metrics-healthchecks-severity.version}</version>
         </dependency>
         
         <dependency>
