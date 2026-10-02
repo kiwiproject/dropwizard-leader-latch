@@ -469,6 +469,7 @@ class ManagedLeaderLatchTest {
     @Test
     void shouldCallActionSynchronously_WhenIsLeader() throws Exception {
         startAndAwait(leaderLatch1);
+        awaitIsLeader(leaderLatch1);
 
         var called = new AtomicBoolean();
         leaderLatch1.whenLeader(() -> called.set(true));
